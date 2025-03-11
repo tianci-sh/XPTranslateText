@@ -1,7 +1,7 @@
 package tianci.dev.xptranslatetext;
 
 import android.os.AsyncTask;
-import android.util.Log;
+import android.widget.TextView;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -11,6 +11,8 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
@@ -18,12 +20,13 @@ import de.robv.android.xposed.XposedBridge;
 public class TranslateTask extends AsyncTask<String, Void, String> {
     private static final String TAG = "TranslateTask";
     private static final String TRANSLATE_URL = "https://translate.googleapis.com/translate_a/single";
-
-    // 這裡多帶入 XC_MethodHook.MethodHookParam，讓我們在 onPostExecute() 取得並回寫參數
+    private static final Map<String, String> translationCache = new ConcurrentHashMap<>();
     private final XC_MethodHook.MethodHookParam mParam;
+    private final int mTranslationId;
 
-    public TranslateTask(XC_MethodHook.MethodHookParam param) {
+    public TranslateTask(XC_MethodHook.MethodHookParam param, int translationId) {
         this.mParam = param;
+        this.mTranslationId = translationId;
     }
 
     @Override
@@ -31,6 +34,13 @@ public class TranslateTask extends AsyncTask<String, Void, String> {
         String sourceText = params[0];
         String sourceLang = params[1]; // e.g., "en"
         String targetLang = params[2]; // e.g., "zh-TW"
+
+        String cacheKey = sourceLang + ":" + targetLang + ":" + sourceText;
+        String cachedResult = translationCache.get(cacheKey);
+        if (cachedResult != null) {
+            XposedBridge.log("Cache hit! text=" + sourceText);
+            return cachedResult;
+        }
 
         try {
             String urlStr = TRANSLATE_URL
@@ -56,10 +66,14 @@ public class TranslateTask extends AsyncTask<String, Void, String> {
 
             // 解析返回的 JSON 結果
             // 返回的 JSON 結構為：[[["翻譯結果","原文",null,null,...]],null,"源語言",...]
-            return parseResult(response.toString());
-
+            String translated = parseResult(response.toString());
+            if (translated != null) {
+                // 4) 放入快取
+                translationCache.put(cacheKey, translated);
+            }
+            return translated;
         } catch (Exception e) {
-            Log.e(TAG, "Error during translation", e);
+            XposedBridge.log("Error during translation => " + e.getMessage());
             return null;
         }
     }
@@ -77,18 +91,32 @@ public class TranslateTask extends AsyncTask<String, Void, String> {
 
             return translatedText.toString();
         } catch (JSONException e) {
-            Log.e(TAG, "Error parsing translation result", e);
+            XposedBridge.log("Error parsing translation result " + e.getMessage());
             return null;
         }
     }
 
     @Override
     protected void onPostExecute(String result) {
-        if (result != null) {
-            // 將翻譯結果寫回 param.args[0] 並呼叫原方法
-            HookMain.applyTranslatedText(mParam, result);
-        } else {
+        if (result == null) {
             XposedBridge.log("Translation failed (result is null).");
+            return;
+        }
+
+        // 檢查 TextView 是否仍然對應同一個 translationId
+        TextView textView = (TextView) mParam.thisObject;
+        Object tagObj = textView.getTag();
+        if (tagObj instanceof Integer) {
+            int currentTag = (Integer) tagObj;
+            if (currentTag == mTranslationId) {
+                // Tag 沒被改變，代表這個 TextView 仍然是對應當初要翻譯的那個
+                HookMain.applyTranslatedText(mParam, result);
+            } else {
+                // Tag 已被新的翻譯任務改掉了 => 這筆結果過期了，不應該再寫入
+                XposedBridge.log("Translation result expired. Current tag=" + currentTag + ", myId=" + mTranslationId);
+            }
+        } else {
+            XposedBridge.log("Translation result expired or tag mismatch. Tag=" + tagObj);
         }
     }
 }
