@@ -34,7 +34,6 @@ jobs:
       - name: Write Keys
         run: |
           if [ ! -z "${{ secrets.KEY_STORE }}" ]; then
-            echo org.gradle.jvmargs=-Xmx4096m >> gradle.properties
             echo androidStorePassword='${{ secrets.KEY_STORE_PASSWORD }}' >> keystore.properties
             echo androidKeyAlias='${{ secrets.ALIAS }}' >> keystore.properties
             echo androidKeyPassword='${{ secrets.KEY_PASSWORD }}' >> keystore.properties
