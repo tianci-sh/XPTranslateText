@@ -40,13 +40,19 @@ public class HookMain implements IXposedHookLoadPackage {
                             return;
                         }
 
+                        XposedBridge.log("Original String => " + originalText);
+                        //XposedBridge.log("TextView Class => " + param.thisObject.getClass().getName());
+
+                        if (isTranslationSkippedForClass(param.thisObject.getClass().getName())) {
+                            return;
+                        }
+
                         int translationId = atomicIdGenerator.getAndIncrement();
 
                         // 把翻譯ID存在 TextView 裏
                         TextView tv = (TextView) param.thisObject;
                         tv.setTag(translationId);
 
-                        XposedBridge.log("Original String => " + originalText);
 
                         List<Segment> segments;
                         if (originalText instanceof Spanned) {
@@ -63,6 +69,14 @@ public class HookMain implements IXposedHookLoadPackage {
                     }
                 }
         );
+    }
+
+    private boolean isTranslationSkippedForClass(String className) {
+        if (className.startsWith("org.telegram.ui.ActionBar.AlertDialog")) {
+            return true;
+        }
+
+        return false;
     }
 
     private boolean isTranslationNeeded(String string) {
