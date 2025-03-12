@@ -13,7 +13,6 @@ ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitV
 espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
-translate = { module = "com.google.mlkit:translate", version.ref = "translate" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
