@@ -32,57 +32,65 @@ public class HookMain implements IXposedHookLoadPackage {
         XposedBridge.log("package => " + lpparam.packageName);
 
         XSharedPreferences prefs = new XSharedPreferences("tianci.dev.xptranslatetext", "xp_translate_text_configs");
+
+        String sourceLang = "en";
+        String targetLang = "zh-TW";
+
         if (prefs.getFile().canRead()) {
             prefs.reload();
-            String sourceLang = prefs.getString("source_lang", "en");
-            String targetLang = prefs.getString("target_lang", "zh-TW");
-            XposedBridge.log("XSP => source=" + sourceLang + ", target=" + targetLang);
-
-            XposedHelpers.findAndHookMethod(
-                    "android.widget.TextView", lpparam.classLoader,
-                    "setText",
-                    CharSequence.class, TextView.BufferType.class,
-                    new XC_MethodHook() {
-                        @Override
-                        protected void beforeHookedMethod(MethodHookParam param) {
-                            CharSequence originalText = (CharSequence) param.args[0];
-
-                            if (originalText == null || originalText.length() == 0 || !isTranslationNeeded(originalText.toString())) {
-                                return;
-                            }
-
-                            XposedBridge.log("Original String => " + originalText);
-                            //XposedBridge.log("TextView Class => " + param.thisObject.getClass().getName());
-
-                            if (isTranslationSkippedForClass(param.thisObject.getClass().getName())) {
-                                return;
-                            }
-
-                            int translationId = atomicIdGenerator.getAndIncrement();
-
-                            // 把翻譯ID存在 TextView 裏
-                            TextView tv = (TextView) param.thisObject;
-                            tv.setTag(translationId);
-
-
-                            List<Segment> segments;
-                            if (originalText instanceof Spanned) {
-                                segments = parseAllSegments((Spanned) originalText);
-                            } else {
-                                // 不帶 Span => 當成單一段
-                                segments = new ArrayList<>();
-                                segments.add(new Segment(0, originalText.length(), originalText.toString()));
-                            }
-
-                            // 非同步翻譯
-                            new MultiSegmentTranslateTask(param, translationId, segments)
-                                    .execute(sourceLang, targetLang);
-                        }
-                    }
-            );
+            sourceLang = prefs.getString("source_lang", sourceLang);
+            targetLang = prefs.getString("target_lang", targetLang);
+            XposedBridge.log("sourceLang=" + sourceLang + ", targetLang=" + targetLang);
         } else {
-            XposedBridge.log("Cannot read XSharedPreferences => " + prefs.getFile().getAbsolutePath());
+            XposedBridge.log("Cannot read XSharedPreferences => " + prefs.getFile().getAbsolutePath()
+                    + ". Fallback to default: en->zh-TW");
         }
+
+        final String finalSourceLang = sourceLang;
+        final String finalTargetLang = targetLang;
+
+        XposedHelpers.findAndHookMethod(
+                "android.widget.TextView",
+                lpparam.classLoader,
+                "setText",
+                CharSequence.class,
+                TextView.BufferType.class,
+                new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) {
+                        CharSequence originalText = (CharSequence) param.args[0];
+
+                        if (originalText == null || originalText.length() == 0
+                                || !isTranslationNeeded(originalText.toString())) {
+                            return;
+                        }
+
+                        XposedBridge.log("Original String => " + originalText);
+
+                        //Debugging: Check if calling invokeOriginalMethod causes text to disappear
+                        //XposedBridge.log("TextView Class => " + param.thisObject.getClass().getName());
+
+                        if (isTranslationSkippedForClass(param.thisObject.getClass().getName())) {
+                            return;
+                        }
+
+                        int translationId = atomicIdGenerator.getAndIncrement();
+                        TextView tv = (TextView) param.thisObject;
+                        tv.setTag(translationId);
+
+                        List<Segment> segments;
+                        if (originalText instanceof Spanned) {
+                            segments = parseAllSegments((Spanned) originalText);
+                        } else {
+                            segments = new ArrayList<>();
+                            segments.add(new Segment(0, originalText.length(), originalText.toString()));
+                        }
+
+                        new MultiSegmentTranslateTask(param, translationId, segments)
+                                .execute(finalSourceLang, finalTargetLang);
+                    }
+                }
+        );
     }
 
     private boolean isTranslationSkippedForClass(String className) {
