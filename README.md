@@ -6,6 +6,12 @@
 
 > Click the link above, select the latest successful workflow run, and download the APK file from the **Artifacts** section.
 
+## 🖼️ **Before & After Comparison**
+
+| Before | After |
+| ------ | ----- |
+| <img src="images/before.png" width="300"> | <img src="images/after.png" width="300"> |
+
 ## 📁 **Project Structure**
 
 ```text
