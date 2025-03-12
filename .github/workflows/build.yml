@@ -31,13 +31,30 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Write Keys
+        run: |
+          if [ ! -z "${{ secrets.KEY_STORE }}" ]; then
+            echo org.gradle.jvmargs=-Xmx4096m >> gradle.properties
+            echo androidStorePassword='${{ secrets.KEY_STORE_PASSWORD }}' >> keystore.properties
+            echo androidKeyAlias='${{ secrets.ALIAS }}' >> keystore.properties
+            echo androidKeyPassword='${{ secrets.KEY_PASSWORD }}' >> keystore.properties
+            echo androidStoreFile='key.jks' >> keystore.properties
+            echo "${{ secrets.KEY_STORE }}" | base64 --decode > key.jks
+          fi
+
       - name: Build with Gradle
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease
 
+      - name: Get Version Name
+        id: version
+        run: |
+          VERSION_NAME=$(grep "versionName" app/build.gradle | awk -F '"' '{print $2}' | head -n 1)
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: release-apk
+          name: release-apk-${{ steps.version.outputs.version_name }}
           path: app/build/outputs/apk/release/*.apk
