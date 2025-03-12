@@ -1,7 +1,14 @@
 package tianci.dev.xptranslatetext;
 
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
 import android.widget.TextView;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
@@ -28,12 +35,8 @@ public class HookMain implements IXposedHookLoadPackage {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) {
                         CharSequence originalText = (CharSequence) param.args[0];
-                        if (originalText == null || originalText.length() == 0) {
-                            return; // 不翻譯空字串
-                        }
 
-                        //純數字
-                        if (originalText.toString().matches("^\\d+$")) {
+                        if (originalText == null || originalText.length() == 0 || !isTranslationNeeded(originalText.toString())) {
                             return;
                         }
 
@@ -45,23 +48,150 @@ public class HookMain implements IXposedHookLoadPackage {
 
                         XposedBridge.log("Original String => " + originalText);
 
+                        List<Segment> segments;
+                        if (originalText instanceof Spanned) {
+                            segments = parseAllSegments((Spanned) originalText);
+                        } else {
+                            // 不帶 Span => 當成單一段
+                            segments = new ArrayList<>();
+                            segments.add(new Segment(0, originalText.length(), originalText.toString()));
+                        }
+
                         // 非同步翻譯
-                        new TranslateTask(param, translationId).execute(originalText.toString(), "en", "zh-TW");
+                        new MultiSegmentTranslateTask(param, translationId, segments)
+                                .execute("en", "zh-TW");
                     }
                 }
         );
     }
 
-    public static void applyTranslatedText(XC_MethodHook.MethodHookParam param, String translatedText) {
+    private boolean isTranslationNeeded(String string) {
+        // 純數字
+        if (string.matches("^\\d+$")) {
+            return false;
+        }
+
+        // 座標
+        if (string.matches("^\\d{1,3}\\.\\d+$")) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public static void applyTranslatedSegments(XC_MethodHook.MethodHookParam param,
+                                               List<Segment> segments) {
         try {
             isTranslating = true;
-            // 直接把翻譯結果放回去呼叫原始方法
-            param.args[0] = translatedText;
+
+            // 重建新的 Spannable
+            CharSequence newSpanned = buildSpannedFromSegments(segments);
+
+            // 套回原始方法參數
+            param.args[0] = newSpanned;
+            param.args[1] = TextView.BufferType.SPANNABLE;
+
             XposedBridge.invokeOriginalMethod(param.method, param.thisObject, param.args);
         } catch (Throwable t) {
-            XposedBridge.log("Error applying translated text: " + t.getMessage());
+            XposedBridge.log("Error applying translated segments: " + t.getMessage());
         } finally {
             isTranslating = false;
         }
     }
+
+    private static List<Segment> parseAllSegments(Spanned spanned) {
+        List<Segment> segments = new ArrayList<>();
+        int textLen = spanned.length();
+        if (textLen == 0) {
+            return segments;
+        }
+
+        // 1) 取出所有 span
+        Object[] allSpans = spanned.getSpans(0, textLen, Object.class);
+
+        // 2) 收集所有 "邊界"(start/end), 一併加上 0, textLen
+        Set<Integer> boundarySet = new HashSet<>();
+        boundarySet.add(0);
+        boundarySet.add(textLen);
+
+        for (Object span : allSpans) {
+            int st = spanned.getSpanStart(span);
+            int en = spanned.getSpanEnd(span);
+            boundarySet.add(st);
+            boundarySet.add(en);
+        }
+
+        // 3) 排序
+        List<Integer> boundaries = new ArrayList<>(boundarySet);
+        Collections.sort(boundaries);
+
+        // 4) 依序區間 [i, i+1) 建立 segment
+        for (int i = 0; i < boundaries.size() - 1; i++) {
+            int segStart = boundaries.get(i);
+            int segEnd = boundaries.get(i + 1);
+            if (segStart >= segEnd) {
+                continue;
+            }
+
+            CharSequence sub = spanned.subSequence(segStart, segEnd);
+            Segment seg = new Segment(segStart, segEnd, sub.toString());
+
+            // 找所有與該區間交集的 span
+            for (Object span : allSpans) {
+                int spanStart = spanned.getSpanStart(span);
+                int spanEnd = spanned.getSpanEnd(span);
+                int flags = spanned.getSpanFlags(span);
+
+                int intersectStart = Math.max(spanStart, segStart);
+                int intersectEnd = Math.min(spanEnd, segEnd);
+
+                if (intersectStart < intersectEnd) {
+                    // 與本 segment 有重疊
+                    int relativeStart = intersectStart - segStart;
+                    int relativeEnd = intersectEnd - segStart;
+                    seg.spans.add(new SpanSpec(span, relativeStart, relativeEnd, flags));
+                }
+            }
+
+            segments.add(seg);
+        }
+
+        return segments;
+    }
+
+    private static CharSequence buildSpannedFromSegments(List<Segment> segments) {
+        SpannableStringBuilder ssb = new SpannableStringBuilder();
+
+        for (Segment seg : segments) {
+            int segStart = ssb.length();
+
+            String piece = (seg.translatedText != null) ? seg.translatedText : seg.text;
+            ssb.append(piece);
+
+            int segEnd = ssb.length();
+            int segLen = segEnd - segStart;
+
+            // 把原本 segment 裏的 spans 套回
+            for (SpanSpec spec : seg.spans) {
+                int startInSsb = segStart + spec.start;
+                int endInSsb = segStart + spec.end;
+
+                if (endInSsb > segEnd) {
+                    endInSsb = segEnd;
+                }
+
+                if (startInSsb < segStart) {
+                    startInSsb = segStart;
+                }
+                if (startInSsb >= endInSsb) {
+                    continue;
+                }
+
+                ssb.setSpan(spec.span, startInSsb, endInSsb, spec.flags);
+            }
+        }
+
+        return ssb;
+    }
+
 }

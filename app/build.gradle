@@ -17,8 +17,8 @@ android {
         applicationId "tianci.dev.xptranslatetext"
         minSdk 28
         targetSdk 34
-        versionCode 1031
-        versionName "1.0.31"
+        versionCode 1110
+        versionName "1.1.10"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
