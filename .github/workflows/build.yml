@@ -38,7 +38,7 @@ jobs:
             echo androidKeyAlias='${{ secrets.ALIAS }}' >> keystore.properties
             echo androidKeyPassword='${{ secrets.KEY_PASSWORD }}' >> keystore.properties
             echo androidStoreFile='key.jks' >> keystore.properties
-            echo "${{ secrets.KEY_STORE }}" | base64 --decode > key.jks
+            echo "${{ secrets.KEY_STORE }}" | base64 --decode > app/key.jks
           fi
 
       - name: Build with Gradle
