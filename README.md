@@ -12,6 +12,19 @@
 | ------ | ----- |
 | <img src="images/before.png" width="300"> | <img src="images/after.png" width="300"> |
 
+## 📦 **Installation & Setup**
+
+### Requirements
+- [LSPosed](https://github.com/LSPosed/LSPosed) or another **Xposed Framework** variant must be installed and enabled.
+
+### Installation Steps
+1. Install the downloaded APK from the link above.
+2. Open the **LSPosed Manager app**, navigate to **Modules**, and enable **XPTranslateText**.
+3. Select the apps you want to translate from the module settings in LSPosed.
+4. Kill your app and restart it.
+
+After restart, the selected apps should display translated text automatically.
+
 ## 📁 **Project Structure**
 
 ```text
