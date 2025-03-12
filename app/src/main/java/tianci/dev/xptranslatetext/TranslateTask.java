@@ -1,12 +1,17 @@
 package tianci.dev.xptranslatetext;
 
 import android.os.AsyncTask;
+import android.os.Environment;
 import android.widget.TextView;
 
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -23,10 +28,14 @@ public class TranslateTask extends AsyncTask<String, Void, String> {
     private static final Map<String, String> translationCache = new ConcurrentHashMap<>();
     private final XC_MethodHook.MethodHookParam mParam;
     private final int mTranslationId;
+    private final boolean useCloudTranslation;
+    private final String packageName;
 
-    public TranslateTask(XC_MethodHook.MethodHookParam param, int translationId) {
+    public TranslateTask(XC_MethodHook.MethodHookParam param, int translationId, String packageName, boolean useCloudTranslation) {
         this.mParam = param;
         this.mTranslationId = translationId;
+        this.packageName = packageName;
+        this.useCloudTranslation = useCloudTranslation;
     }
 
     @Override
@@ -42,6 +51,14 @@ public class TranslateTask extends AsyncTask<String, Void, String> {
             return cachedResult;
         }
 
+        if (useCloudTranslation) {
+            return translateUsingCloud(sourceText, sourceLang, targetLang, cacheKey);
+        } else {
+            return translateUsingLocal(sourceText, packageName);
+        }
+    }
+
+    private String translateUsingCloud(String sourceText, String sourceLang, String targetLang, String cacheKey) {
         try {
             String urlStr = TRANSLATE_URL
                     + "?client=gtx"
@@ -64,16 +81,49 @@ public class TranslateTask extends AsyncTask<String, Void, String> {
             }
             in.close();
 
-            // 解析返回的 JSON 結果
-            // 返回的 JSON 結構為：[[["翻譯結果","原文",null,null,...]],null,"源語言",...]
             String translated = parseResult(response.toString());
             if (translated != null) {
-                // 4) 放入快取
                 translationCache.put(cacheKey, translated);
             }
             return translated;
         } catch (Exception e) {
             XposedBridge.log("Error during translation => " + e.getMessage());
+            return null;
+        }
+    }
+
+    private String translateUsingLocal(String sourceText, String packageName) {
+        File downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        File translationFile = new File(downloadDir, packageName + "_translations.json");
+
+        try {
+            JSONObject translations = new JSONObject();
+            if (translationFile.exists()) {
+                BufferedReader reader = new BufferedReader(new FileReader(translationFile));
+                StringBuilder jsonBuilder = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    jsonBuilder.append(line);
+                }
+                reader.close();
+                translations = new JSONObject(jsonBuilder.toString());
+            }
+
+            // 檢查是否有翻譯過
+            if (translations.has(sourceText)) {
+                return translations.getString(sourceText);
+            } else {
+                // 沒翻譯過，儲存至json
+                translations.put(sourceText, sourceText);
+
+                FileWriter writer = new FileWriter(translationFile);
+                writer.write(translations.toString(4)); // Indent with 4 spaces
+                writer.close();
+
+                return sourceText;
+            }
+        } catch (Exception e) {
+            XposedBridge.log("Error during local translation => " + e.getMessage());
             return null;
         }
     }
@@ -103,16 +153,13 @@ public class TranslateTask extends AsyncTask<String, Void, String> {
             return;
         }
 
-        // 檢查 TextView 是否仍然對應同一個 translationId
         TextView textView = (TextView) mParam.thisObject;
         Object tagObj = textView.getTag();
         if (tagObj instanceof Integer) {
             int currentTag = (Integer) tagObj;
             if (currentTag == mTranslationId) {
-                // Tag 沒被改變，代表這個 TextView 仍然是對應當初要翻譯的那個
                 HookMain.applyTranslatedText(mParam, result);
             } else {
-                // Tag 已被新的翻譯任務改掉了 => 這筆結果過期了，不應該再寫入
                 XposedBridge.log("Translation result expired. Current tag=" + currentTag + ", myId=" + mTranslationId);
             }
         } else {

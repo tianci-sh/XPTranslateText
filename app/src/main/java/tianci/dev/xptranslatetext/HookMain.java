@@ -13,8 +13,8 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 public class HookMain implements IXposedHookLoadPackage {
 
     private static boolean isTranslating = false;
-
     private static final AtomicInteger atomicIdGenerator = new AtomicInteger(1);
+    private static final boolean useCloudTranslation = false; // 使用Google翻譯
 
     @Override
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
@@ -32,8 +32,9 @@ public class HookMain implements IXposedHookLoadPackage {
                             return; // 不翻譯空字串
                         }
 
-                        //純數字
-                        if (originalText.toString().matches("^\\d+$")) {
+                        // 不翻譯數字與座標
+                        if (originalText.toString().matches("^-?\\d+(\\.\\d+)?$") ||
+                                originalText.toString().matches("^-?\\d+\\.\\d+,-?\\d+\\.\\d+$")) {
                             return;
                         }
 
@@ -46,7 +47,8 @@ public class HookMain implements IXposedHookLoadPackage {
                         XposedBridge.log("Original String => " + originalText);
 
                         // 非同步翻譯
-                        new TranslateTask(param, translationId).execute(originalText.toString(), "en", "zh-TW");
+                        new TranslateTask(param, translationId, lpparam.packageName, useCloudTranslation)
+                                .execute(originalText.toString(), "en", "zh-TW");
                     }
                 }
         );
