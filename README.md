@@ -2,7 +2,7 @@
 
 **Auto-translate app text using [Free Google API](https://github.com/ssut/py-googletrans/issues/268)**
 
-[⬇️ **Download Latest APK**](https://github.com/<your-username>/<repo-name>/actions/workflows/android.yml)
+[⬇️ **Download Latest APK**](https://github.com/tianci-sh/XPTranslateText/actions/workflows/build.yml)
 
 > Click the link above, select the latest successful workflow run, and download the APK file from the **Artifacts** section.
 
