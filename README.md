@@ -2,15 +2,10 @@
 
 **Auto-translate app text using [Free Google API](https://github.com/ssut/py-googletrans/issues/268)**
 
-[⬇️ **Download Latest APK**](https://github.com/tianci-sh/XPTranslateText/actions/workflows/build.yml)
+## 📥 Download
 
-> Click the link above, select the latest successful workflow run, and download the APK file from the **Artifacts** section.
-
-## 🖼️ **Before & After Comparison**
-
-| Before | After |
-| ------ | ----- |
-| <img src="images/before.png" width="300"> | <img src="images/after.png" width="300"> |
+[⬇️ **Download the Latest APK**](https://github.com/tianci-sh/XPTranslateText/actions/workflows/build.yml)
+> Select the latest successful workflow run and download the APK from the **Artifacts** section.
 
 ## 📦 **Installation & Setup**
 
@@ -24,6 +19,12 @@
 4. Kill your app and restart it.
 
 After restart, the selected apps should display translated text automatically.
+
+## 🖼️ **Before & After Comparison**
+
+| Before | After |
+| ------ | ----- |
+| <img src="images/before.png" width="300"> | <img src="images/after.png" width="300"> |
 
 ## 📁 **Project Structure**
 
