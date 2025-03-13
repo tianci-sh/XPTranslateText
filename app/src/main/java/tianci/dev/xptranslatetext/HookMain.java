@@ -40,6 +40,7 @@ public class HookMain implements IXposedHookLoadPackage {
             prefs.reload();
             sourceLang = prefs.getString("source_lang", sourceLang);
             targetLang = prefs.getString("target_lang", targetLang);
+
             XposedBridge.log("sourceLang=" + sourceLang + ", targetLang=" + targetLang);
         } else {
             XposedBridge.log("Cannot read XSharedPreferences => " + prefs.getFile().getAbsolutePath()
@@ -60,8 +61,7 @@ public class HookMain implements IXposedHookLoadPackage {
                     protected void beforeHookedMethod(MethodHookParam param) {
                         CharSequence originalText = (CharSequence) param.args[0];
 
-                        if (originalText == null || originalText.length() == 0
-                                || !isTranslationNeeded(originalText.toString())) {
+                        if (originalText == null || originalText.length() == 0) {
                             return;
                         }
 
@@ -86,8 +86,13 @@ public class HookMain implements IXposedHookLoadPackage {
                             segments.add(new Segment(0, originalText.length(), originalText.toString()));
                         }
 
-                        new MultiSegmentTranslateTask(param, translationId, segments)
-                                .execute(finalSourceLang, finalTargetLang);
+                        MultiSegmentTranslateTask.translateSegmentsAsync(
+                                param,
+                                translationId,
+                                segments,
+                                finalSourceLang,
+                                finalTargetLang
+                        );
                     }
                 }
         );
@@ -99,20 +104,6 @@ public class HookMain implements IXposedHookLoadPackage {
         }
 
         return false;
-    }
-
-    private boolean isTranslationNeeded(String string) {
-        // 純數字
-        if (string.matches("^\\d+$")) {
-            return false;
-        }
-
-        // 座標
-        if (string.matches("^\\d{1,3}\\.\\d+$")) {
-            return false;
-        }
-
-        return true;
     }
 
     public static void applyTranslatedSegments(XC_MethodHook.MethodHookParam param,

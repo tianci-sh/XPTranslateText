@@ -4,7 +4,7 @@
 
 ## 📥 Download
 
-[⬇️ **Download the Latest APK**](https://github.com/tianci-sh/XPTranslateText/actions/workflows/build.yml)
+[**Download the Latest APK**](https://github.com/tianci-sh/XPTranslateText/actions/workflows/build.yml)
 > Select the latest successful workflow run and download the APK from the **Artifacts** section.
 
 ## 📦 **Installation & Setup**
