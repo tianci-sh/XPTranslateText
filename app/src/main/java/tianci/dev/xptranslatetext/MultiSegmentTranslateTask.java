@@ -1,5 +1,6 @@
 package tianci.dev.xptranslatetext;
 
+import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.widget.TextView;
@@ -34,12 +35,18 @@ class MultiSegmentTranslateTask {
 
     // 簡易翻譯快取: (srcLang + tgtLang + text) -> translated
     private static final Map<String, String> translationCache = new ConcurrentHashMap<>();
+    private static TranslationDatabaseHelper dbHelper;
 
-    private static final String[] GEMINI_API_KEYS = {
+    private static final String[] GEMINI_API_KEYS = KeyObfuscator.getApiKeys();
 
-    };
     private static final long[] geminiKeyBlockUntil = new long[GEMINI_API_KEYS.length];
     private static int geminiKeyIndex = 0;
+
+    public static void initDatabaseHelper(Context context) {
+        if (dbHelper == null) {
+            dbHelper = new TranslationDatabaseHelper(context.getApplicationContext());
+        }
+    }
 
     public static void translateSegmentsAsync(
             final XC_MethodHook.MethodHookParam param,
@@ -89,6 +96,14 @@ class MultiSegmentTranslateTask {
                 continue;
             }
 
+            String dbResult = getTranslationFromDatabase(cacheKey);
+            if (dbResult != null) {
+                XposedBridge.log("Hit from sqlite => " + cacheKey);
+                seg.translatedText = dbResult;
+                translationCache.put(cacheKey, dbResult);
+                continue;
+            }
+
             if (!isTranslationNeeded(txt)) {
                 seg.translatedText = txt;
                 continue;
@@ -97,6 +112,9 @@ class MultiSegmentTranslateTask {
             String result = null;
             if (GEMINI_API_KEYS.length > 0) {
                 result = translateByGemini(txt, tgtLang);
+
+                // gemini is better than free api
+                putTranslationToDatabase(cacheKey, result);
             }
 
             // When free Gemini got 429 failed
@@ -282,4 +300,15 @@ class MultiSegmentTranslateTask {
 
         return true;
     }
+
+    private static String getTranslationFromDatabase(String cacheKey) {
+        if (dbHelper == null) return null;
+        return dbHelper.getTranslation(cacheKey);
+    }
+
+    private static void putTranslationToDatabase(String cacheKey, String translatedText) {
+        if (dbHelper == null) return;
+        dbHelper.putTranslation(cacheKey, translatedText);
+    }
+
 }

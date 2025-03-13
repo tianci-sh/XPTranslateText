@@ -1,9 +1,16 @@
 package tianci.dev.xptranslatetext;
 
+import android.app.Activity;
+import android.app.AndroidAppHelper;
+import android.content.Context;
+import android.os.Bundle;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.widget.TextView;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -93,6 +100,23 @@ public class HookMain implements IXposedHookLoadPackage {
                                 finalSourceLang,
                                 finalTargetLang
                         );
+                    }
+                }
+        );
+
+        XposedHelpers.findAndHookMethod(
+                "android.app.Activity",
+                lpparam.classLoader,
+                "onCreate",
+                Bundle.class,
+                new XC_MethodHook() {
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) {
+                        Activity activity = (Activity) param.thisObject;
+                        Context context = activity.getApplicationContext();
+
+                        XposedBridge.log("Context: " + context.getPackageName());
+                        MultiSegmentTranslateTask.initDatabaseHelper(context);
                     }
                 }
         );
