@@ -1,0 +1,18 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <EditTextPreference
+        android:key="source_lang"
+        android:title="Source Language"
+        android:summary="Enter source language code (e.g., en, ja, ko)"
+        android:defaultValue="en"
+        android:dialogTitle="Set Source Language"
+        android:singleLine="true" />
+
+    <EditTextPreference
+        android:key="target_lang"
+        android:title="Target Language"
+        android:summary="Enter target language code (e.g., zh-TW, zh-CN, ja)"
+        android:defaultValue="zh-TW"
+        android:dialogTitle="Set Target Language"
+        android:singleLine="true" />
+</PreferenceScreen>

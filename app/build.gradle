@@ -17,8 +17,8 @@ android {
         applicationId "tianci.dev.xptranslatetext"
         minSdk 28
         targetSdk 34
-        versionCode 1031
-        versionName "1.0.31"
+        versionCode 1218
+        versionName "1.2.18"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -63,4 +63,6 @@ dependencies {
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
+
+    implementation 'androidx.preference:preference:1.2.1'
 }
