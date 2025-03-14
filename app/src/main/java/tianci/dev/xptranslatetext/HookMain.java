@@ -1,23 +1,23 @@
 package tianci.dev.xptranslatetext;
 
 import android.app.Activity;
-import android.app.AndroidAppHelper;
 import android.content.Context;
 import android.os.Bundle;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.widget.TextView;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import dalvik.system.DexFile;
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
@@ -25,6 +25,7 @@ import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 import de.robv.android.xposed.XSharedPreferences;
+import tianci.dev.xptranslatetext.rules.Telegram;
 
 public class HookMain implements IXposedHookLoadPackage {
 
@@ -57,12 +58,36 @@ public class HookMain implements IXposedHookLoadPackage {
         final String finalSourceLang = sourceLang;
         final String finalTargetLang = targetLang;
 
+        hookAllCustomSetTextClasss(lpparam, finalSourceLang, finalTargetLang);
+        hookTextView(lpparam, finalSourceLang, finalTargetLang);
+
+        XposedHelpers.findAndHookMethod(
+                "android.app.Activity",
+                lpparam.classLoader,
+                "onCreate",
+                Bundle.class,
+                new XC_MethodHook() {
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) {
+                        Activity activity = (Activity) param.thisObject;
+                        Context context = activity.getApplicationContext();
+
+                        XposedBridge.log("Context: " + context.getPackageName());
+                        MultiSegmentTranslateTask.initDatabaseHelper(context);
+                    }
+                }
+        );
+    }
+
+    private void hookTextView(XC_LoadPackage.LoadPackageParam lpparam, String finalSourceLang, String finalTargetLang) {
         XposedHelpers.findAndHookMethod(
                 "android.widget.TextView",
                 lpparam.classLoader,
                 "setText",
                 CharSequence.class,
                 TextView.BufferType.class,
+                boolean.class,
+                int.class,
                 new XC_MethodHook() {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) {
@@ -72,12 +97,12 @@ public class HookMain implements IXposedHookLoadPackage {
                             return;
                         }
 
-                        XposedBridge.log("Original String => " + originalText);
+                        XposedBridge.log(String.format("[ translate ] %s string => %s", param.thisObject.getClass(), originalText));
 
                         //Debugging: Check if calling invokeOriginalMethod causes text to disappear
                         //XposedBridge.log("TextView Class => " + param.thisObject.getClass().getName());
 
-                        if (isTranslationSkippedForClass(param.thisObject.getClass().getName())) {
+                        if (isTranslationSkippedForClass(lpparam.packageName, param.thisObject.getClass().getName())) {
                             return;
                         }
 
@@ -103,31 +128,106 @@ public class HookMain implements IXposedHookLoadPackage {
                     }
                 }
         );
-
-        XposedHelpers.findAndHookMethod(
-                "android.app.Activity",
-                lpparam.classLoader,
-                "onCreate",
-                Bundle.class,
-                new XC_MethodHook() {
-                    @Override
-                    protected void afterHookedMethod(MethodHookParam param) {
-                        Activity activity = (Activity) param.thisObject;
-                        Context context = activity.getApplicationContext();
-
-                        XposedBridge.log("Context: " + context.getPackageName());
-                        MultiSegmentTranslateTask.initDatabaseHelper(context);
-                    }
-                }
-        );
     }
 
-    private boolean isTranslationSkippedForClass(String className) {
-        if (className.startsWith("org.telegram.ui.ActionBar.AlertDialog")) {
-            return true;
-        }
+    private void hookAllCustomSetTextClasss(XC_LoadPackage.LoadPackageParam lpparam, String finalSourceLang, String finalTargetLang) {
+        try {
+            Field pathListField = XposedHelpers.findField(lpparam.classLoader.getClass(), "pathList");
+            Object pathList = pathListField.get(lpparam.classLoader);
 
-        return false;
+            Field dexElementsField = XposedHelpers.findField(pathList.getClass(), "dexElements");
+            Object[] dexElements = (Object[]) dexElementsField.get(pathList);
+
+            Field dexFileField = null;
+            for (Object element : dexElements) {
+                if (element == null) continue;
+                if (dexFileField == null) {
+                    dexFileField = XposedHelpers.findFieldIfExists(element.getClass(), "dexFile");
+                }
+                if (dexFileField == null) {
+                    XposedBridge.log("Can't find dexFile field in dexElement!");
+                    continue;
+                }
+                DexFile dexFile = (DexFile) dexFileField.get(element);
+                if (dexFile == null) {
+                    continue;
+                }
+
+                Enumeration<String> classNames = dexFile.entries();
+                while (classNames.hasMoreElements()) {
+                    String className = classNames.nextElement();
+
+                    try {
+                        Class<?> clazz = lpparam.classLoader.loadClass(className);
+
+                        // skip extends textview class
+                        if (TextView.class.isAssignableFrom(clazz)) {
+                            continue;
+                        }
+
+                        if (isTranslationSkippedForClass(lpparam.packageName, className)) {
+                            continue;
+                        }
+
+                        for (final Method method : clazz.getDeclaredMethods()) {
+                            if (!method.getName().equals("setText")) {
+                                continue;
+                            }
+                            Class<?>[] pTypes = method.getParameterTypes();
+                            if (pTypes.length == 1 && (pTypes[0] == CharSequence.class || pTypes[0] == String.class)) {
+
+                                XposedBridge.hookMethod(method, new XC_MethodHook() {
+                                    @Override
+                                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                                        CharSequence originalText = (CharSequence) param.args[0];
+                                        if (originalText == null || originalText.length() == 0) {
+                                            return;
+                                        }
+
+                                        XposedBridge.log(String.format("[ translate ] %s string => %s", param.thisObject.getClass(), originalText));
+
+                                        int translationId = atomicIdGenerator.getAndIncrement();
+                                        Method setTagMethod = XposedHelpers.findMethodExactIfExists(param.thisObject.getClass(), "setTag", Object.class);
+                                        if (setTagMethod != null) {
+                                            XposedHelpers.callMethod(param.thisObject, "setTag", translationId);
+                                        }
+
+
+                                        List<Segment> segments;
+                                        if (originalText instanceof Spanned) {
+                                            segments = parseAllSegments((Spanned) originalText);
+                                        } else {
+                                            segments = new ArrayList<>();
+                                            segments.add(new Segment(0, originalText.length(), originalText.toString()));
+                                        }
+
+                                        MultiSegmentTranslateTask.translateSegmentsAsync(
+                                                param,
+                                                translationId,
+                                                segments,
+                                                finalSourceLang,
+                                                finalTargetLang
+                                        );
+                                    }
+                                });
+                                XposedBridge.log(String.format("Hook custom setText class => [%s] ", className));
+                            }
+                        }
+                    } catch (Throwable e) {
+                        XposedBridge.log(String.format("Hook custom setText failed class => [%s]", className));
+                    }
+                }
+            }
+        } catch (Exception e) {
+            XposedBridge.log("Enumerate Dex error => " + e.getMessage());
+        }
+    }
+
+    private boolean isTranslationSkippedForClass(String packageName, String className) {
+        return switch (packageName) {
+            case "org.telegram.messenger" -> Telegram.shouldSkipClass(className);
+            default -> false;
+        };
     }
 
     public static void applyTranslatedSegments(XC_MethodHook.MethodHookParam param,
@@ -140,7 +240,7 @@ public class HookMain implements IXposedHookLoadPackage {
 
             // 套回原始方法參數
             param.args[0] = newSpanned;
-            param.args[1] = TextView.BufferType.SPANNABLE;
+//            param.args[1] = TextView.BufferType.SPANNABLE;
 
             XposedBridge.invokeOriginalMethod(param.method, param.thisObject, param.args);
         } catch (Throwable t) {
@@ -244,5 +344,4 @@ public class HookMain implements IXposedHookLoadPackage {
 
         return ssb;
     }
-
 }
