@@ -21,10 +21,17 @@
 
 After restart, the selected apps should display translated text automatically.
 
-## **Translation Priority**
-1. **Local Translation Cache**: Speeds up translation by caching previously translated texts locally.
-2. **Gemini API (gemini-2.0-flash-lite)**: Uses Google's Gemini API for translations first, with a fallback to the Free Google API when needed.
-3. **Free Google API**
+## 🛠️ Hook Methods & Translation Workflow
+- **android.widget.TextView & Custom Components:**
+  - Automatically translates text set via the `setText()` method.
+  - Translation is prioritized using:
+    1. **Local Translation Cache**: Speeds up translation by caching previously translated texts locally.
+    2. **Gemini API (gemini-2.0-flash-lite)**: Uses Google's Gemini API for translations first, with a fallback to the Free Google API when needed.
+    3. **Free Google API**
+
+- **android.webkit.WebView:**
+  - Performs real-time translation of entire webpage content.
+  - Exclusively uses the **Free Google API** due to the dynamic nature of web content.
 
 ## ✅ **Compatibility**
 - Tested and confirmed working on:
