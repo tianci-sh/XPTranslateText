@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.widget.TextView;
+import android.webkit.WebView;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -60,6 +61,7 @@ public class HookMain implements IXposedHookLoadPackage {
 
         hookAllCustomSetTextClasss(lpparam, finalSourceLang, finalTargetLang);
         hookTextView(lpparam, finalSourceLang, finalTargetLang);
+        hookWebView(lpparam, finalSourceLang, finalTargetLang);
 
         XposedHelpers.findAndHookMethod(
                 "android.app.Activity",
@@ -74,6 +76,56 @@ public class HookMain implements IXposedHookLoadPackage {
 
                         XposedBridge.log("Context: " + context.getPackageName());
                         MultiSegmentTranslateTask.initDatabaseHelper(context);
+                    }
+                }
+        );
+    }
+
+    private void hookWebView(XC_LoadPackage.LoadPackageParam lpparam, String finalSourceLang, String finalTargetLang) {
+        XposedHelpers.findAndHookConstructor(
+                "android.webkit.WebView",
+                lpparam.classLoader,
+                Context.class,
+                new XC_MethodHook() {
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        WebView webView = (WebView) param.thisObject;
+                        Context ctx = (Context) param.args[0];
+
+                        XposedBridge.log("[WebView Constructor] => Adding JS Bridge for translation...");
+
+                        WebView.setWebContentsDebuggingEnabled(true);
+                        XposedBridge.log("[WebView Constructor] => WebContentsDebuggingEnabled set to true.");
+
+                        webView.addJavascriptInterface(
+                                new WebViewTranslationBridge(webView),
+                                "XPTranslateTextBridge"
+                        );
+                    }
+                }
+        );
+
+        XposedHelpers.findAndHookMethod(
+                "android.webkit.WebViewClient",
+                lpparam.classLoader,
+                "onPageFinished",
+                WebView.class,
+                String.class,
+                new XC_MethodHook() {
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        WebView webView = (WebView) param.args[0];
+                        String url = (String) param.args[1];
+
+                        if (webView == null) return;
+
+                        XposedBridge.log("onPageFinished => " + url);
+
+                        String jsCode = buildExtractTextJS(finalSourceLang,finalTargetLang);
+
+                        webView.post(() -> {
+                            webView.evaluateJavascript(jsCode, null);
+                        });
                     }
                 }
         );
@@ -343,5 +395,85 @@ public class HookMain implements IXposedHookLoadPackage {
         }
 
         return ssb;
+    }
+
+    private String buildExtractTextJS(String finalSourceLang, String finalTargetLang) {
+        return ""
+                + "const EXCLUDE_TAGS = ['SCRIPT', 'STYLE', 'NOSCRIPT', 'IFRAME', 'SVG', 'CANVAS', 'HEAD', 'META', 'LINK'];\n\n"
+                + "function extractAllTextNodes(rootElement, minLength = 20) {\n"
+                + "    const textNodes = [];\n"
+                + "    function traverse(node) {\n"
+                + "        if (!node || EXCLUDE_TAGS.includes(node.nodeName)) return;\n"
+                + "        if (node.nodeType === Node.TEXT_NODE) {\n"
+                + "            const text = node.textContent.trim();\n"
+                + "            if (text.length >= minLength) {\n"
+                + "                textNodes.push(node);\n"
+                + "            }\n"
+                + "        } else {\n"
+                + "            for (const child of node.childNodes) {\n"
+                + "                traverse(child);\n"
+                + "            }\n"
+                + "        }\n"
+                + "    }\n"
+                + "    traverse(rootElement);\n"
+                + "    return textNodes;\n"
+                + "}\n\n"
+                + "const pendingTranslations = {};\n\n"
+                + "(function mainTranslateFlow() {\n"
+                + "    let textNodes = extractAllTextNodes(document.body);\n\n"
+                + "    textNodes = textNodes.map(node => {\n"
+                + "        let top = Number.MAX_SAFE_INTEGER;\n"
+                + "        if (node.parentElement) {\n"
+                + "            try {\n"
+                + "                const rect = node.parentElement.getBoundingClientRect();\n"
+                + "                top = rect.top;\n"
+                + "            } catch(e){}\n"
+                + "        }\n"
+                + "        return { node, top };\n"
+                + "    }).sort((a, b) => a.top - b.top)\n"
+                + "      .map(item => item.node);\n\n"
+                + "    let currentIndex = 0;\n\n"
+                + "    function processNextNode() {\n"
+                + "        if (currentIndex >= textNodes.length) {\n"
+                + "            console.log('[XPTranslate] All text nodes have been processed (success or fail).');\n"
+                + "            return;\n"
+                + "        }\n\n"
+                + "        const node = textNodes[currentIndex++];\n"
+                + "        const originalText = node.textContent.trim();\n"
+                + "        const requestId = 'req_' + Math.random().toString(36).substr(2);\n\n"
+                + "        pendingTranslations[requestId] = { node, timeoutId: null };\n\n"
+                + "        const TIMEOUT_MS = 500;\n"
+                + "        const timeoutId = setTimeout(() => {\n"
+                + "            processNextNode();\n"
+                + "        }, TIMEOUT_MS);\n\n"
+                + "        pendingTranslations[requestId].timeoutId = timeoutId;\n\n"
+                + "        try {\n"
+                + "            window.XPTranslateTextBridge.translateFromJs(requestId, originalText, '" + finalSourceLang + "', '" + finalTargetLang + "');\n"
+                + "        } catch(err) {\n"
+                + "            console.error('[XPTranslate] translateFromJs error =>', err);\n"
+                + "            clearTimeout(timeoutId);\n"
+                + "            delete pendingTranslations[requestId];\n"
+                + "            processNextNode();\n"
+                + "        }\n"
+                + "    }\n\n"
+                + "    window.__xpTranslateProcessNextNode = processNextNode;\n\n"
+                + "    processNextNode();\n"
+                + "})();\n\n"
+                + "window.onXPTranslateCompleted = function(requestId, translatedText) {\n"
+                + "    const record = pendingTranslations[requestId];\n"
+                + "    if (!record) {\n"
+                + "        console.warn('[XPTranslate] onXPTranslateCompleted => No pending node for requestId:', requestId);\n"
+                + "        return;\n"
+                + "    }\n\n"
+                + "    if (record.timeoutId) {\n"
+                + "        clearTimeout(record.timeoutId);\n"
+                + "    }\n\n"
+                + "    record.node.textContent = translatedText;\n"
+                + "    delete pendingTranslations[requestId];\n\n"
+                + "    console.log(`[XPTranslate] Replaced text node (requestId=${requestId}) =>`, translatedText);\n\n"
+                + "    if (typeof window.__xpTranslateProcessNextNode === 'function') {\n"
+                + "        window.__xpTranslateProcessNextNode();\n"
+                + "    }\n"
+                + "};\n";
     }
 }
