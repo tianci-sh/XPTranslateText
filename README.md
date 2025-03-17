@@ -56,3 +56,7 @@ XPTranslateText/
 ├── keystore.properties      # Local-only, not committed
 └── settings.gradle
 ```
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=tianci-sh/XPTranslateText&type=Date)](https://www.star-history.com/#tianci-sh/XPTranslateText&Date)
