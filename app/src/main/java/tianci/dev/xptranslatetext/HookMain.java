@@ -42,7 +42,7 @@ public class HookMain implements IXposedHookLoadPackage {
 
         XSharedPreferences prefs = new XSharedPreferences("tianci.dev.xptranslatetext", "xp_translate_text_configs");
 
-        String sourceLang = "en";
+        String sourceLang = "auto";
         String targetLang = "zh-TW";
 
         if (prefs.getFile().canRead()) {
@@ -53,7 +53,7 @@ public class HookMain implements IXposedHookLoadPackage {
             XposedBridge.log("sourceLang=" + sourceLang + ", targetLang=" + targetLang);
         } else {
             XposedBridge.log("Cannot read XSharedPreferences => " + prefs.getFile().getAbsolutePath()
-                    + ". Fallback to default: en->zh-TW");
+                    + ". Fallback to default: auto->zh-TW");
         }
 
         final String finalSourceLang = sourceLang;
