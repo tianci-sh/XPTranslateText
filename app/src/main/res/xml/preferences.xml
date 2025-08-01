@@ -1,18 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <EditTextPreference
-        android:key="source_lang"
-        android:title="@string/source_language_title"
-        android:summary="@string/source_language_summary"
-        android:defaultValue="auto"
-        android:dialogTitle="@string/source_language_dialog_title"
-        android:singleLine="true" />
+    <PreferenceCategory android:title="@string/translation_settings_category">
 
-    <EditTextPreference
-        android:key="target_lang"
-        android:title="@string/target_language_title"
-        android:summary="@string/target_language_summary"
-        android:defaultValue="zh-TW"
-        android:dialogTitle="@string/target_language_dialog_title"
-        android:singleLine="true" />
+        <EditTextPreference
+            android:key="source_lang"
+            android:title="@string/source_language_title"
+            android:summary="@string/source_language_summary"
+            android:dialogTitle="@string/source_language_dialog_title"
+            android:defaultValue="auto"
+            android:singleLine="true" />
+
+        <EditTextPreference
+            android:key="target_lang"
+            android:title="@string/target_language_title"
+            android:summary="@string/target_language_summary"
+            android:dialogTitle="@string/target_language_dialog_title"
+            android:defaultValue="zh-TW"
+            android:singleLine="true" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/custom_api_category">
+
+        <EditTextPreference
+            android:key="custom_api_url"
+            android:title="@string/custom_api_url_title"
+            android:summary="@string/custom_api_url_summary"
+            android:inputType="textUri"
+            android:selectAllOnFocus="true" />
+
+        <Preference
+            android:key="clear_custom_api"
+            android:title="@string/custom_api_clear_title"
+            android:summary="@string/custom_api_clear_summary" />
+
+    </PreferenceCategory>
+
 </PreferenceScreen>

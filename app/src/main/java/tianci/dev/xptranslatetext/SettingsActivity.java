@@ -8,6 +8,8 @@ import android.util.Log;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.preference.EditTextPreference;
+import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
 
@@ -71,6 +73,32 @@ public class SettingsActivity extends AppCompatActivity {
             }
 
             setPreferencesFromResource(R.xml.preferences, rootKey);
+
+            // 設置清除自訂 API URL 按鈕的點擊事件
+            Preference clearCustomApiPref = findPreference("clear_custom_api");
+            if (clearCustomApiPref != null) {
+                clearCustomApiPref.setOnPreferenceClickListener(preference -> {
+                    showClearCustomApiDialog();
+                    return true;
+                });
+            }
+        }
+
+        private void showClearCustomApiDialog() {
+            new AlertDialog.Builder(getContext())
+                    .setTitle(R.string.custom_api_clear_confirm_title)
+                    .setMessage(R.string.custom_api_clear_confirm_message)
+                    .setPositiveButton(R.string.clear, (dialog, which) -> {
+                        // 清除自訂 API URL
+                        EditTextPreference customApiUrlPref = findPreference("custom_api_url");
+                        if (customApiUrlPref != null) {
+                            customApiUrlPref.setText("");
+                            // 可選：清除翻譯快取
+                            CustomTranslationManager.clearCache();
+                        }
+                    })
+                    .setNegativeButton(R.string.cancel, null)
+                    .show();
         }
     }
 }

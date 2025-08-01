@@ -16,4 +16,20 @@
     <string name="target_language_title">Target Language</string>
     <string name="target_language_summary">Enter target language code (e.g., zh-TW, zh-CN, en, ja)</string>
     <string name="target_language_dialog_title">Set Target Language</string>
+
+    <!-- Preference Categories -->
+    <string name="translation_settings_category">Translation Settings</string>
+    <string name="custom_api_category">Custom Translation API</string>
+
+    <!-- Custom API Settings -->
+    <string name="custom_api_url_title">Custom API URL</string>
+    <string name="custom_api_url_summary">Set custom translation source API URL</string>
+
+    <!-- Custom API -->
+    <string name="custom_api_clear_title">Clear Custom API URL</string>
+    <string name="custom_api_clear_summary">Tap to clear the current custom API URL</string>
+    <string name="custom_api_clear_confirm_title">Confirm Clear</string>
+    <string name="custom_api_clear_confirm_message">Are you sure you want to clear the custom API URL?</string>
+    <string name="clear">Clear</string>
+    <string name="cancel">Cancel</string>
 </resources>

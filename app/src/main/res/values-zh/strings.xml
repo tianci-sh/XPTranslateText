@@ -17,6 +17,20 @@
     <string name="target_language_summary">輸入目標語言代碼（例如：zh-TW, zh-CN, en, ja）</string>
     <string name="target_language_dialog_title">設置目標語言</string>
 
+    <!-- 偏好設定分類 -->
+    <string name="translation_settings_category">翻译设置</string>
+    <string name="custom_api_category">自定义翻译 API</string>
+
+    <!-- 自定义 API 设置 -->
+    <string name="custom_api_url_title">自定义 API URL</string>
+    <string name="custom_api_url_summary">设置自定义翻译源的 API 网址</string>
+    <string name="custom_api_clear_title">清除自定义 API URL</string>
+    <string name="custom_api_clear_summary">点击以清除当前的自定义 API 网址</string>
+    <string name="custom_api_clear_confirm_title">确认清除</string>
+    <string name="custom_api_clear_confirm_message">确定要清除自定义 API URL 吗？</string>
+    <string name="clear">清除</string>
+    <string name="cancel">取消</string>
+
     <!-- 一般用語 -->
     <string name="ok">確定</string>
 </resources>

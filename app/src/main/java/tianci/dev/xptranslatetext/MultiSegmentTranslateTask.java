@@ -4,6 +4,7 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Base64;
+import android.util.Log;
 import android.webkit.WebView;
 
 import org.json.JSONArray;
@@ -42,6 +43,12 @@ class MultiSegmentTranslateTask {
     private static final Map<String, String> translationCache = new ConcurrentHashMap<>();
     private static TranslationDatabaseHelper dbHelper;
 
+    // 儲存當前包名，用於自訂翻譯查詢
+    private static String currentPackageName = null;
+
+    // 儲存自訂 API URL
+    private static String customApiUrl = null;
+
     private static final String[] GEMINI_API_KEYS = KeyObfuscator.getApiKeys();
 
     private static final long[] geminiKeyBlockUntil = new long[GEMINI_API_KEYS.length];
@@ -51,6 +58,27 @@ class MultiSegmentTranslateTask {
         if (dbHelper == null) {
             dbHelper = new TranslationDatabaseHelper(context.getApplicationContext());
         }
+
+        if (customApiUrl != null) {
+            log("Initializing custom translation manager with API URL: " + customApiUrl);
+            CustomTranslationManager.initialize(context, customApiUrl);
+            log("Custom translation manager initialized successfully");
+        } else {
+            log("Initializing custom translation manager (blocking on first load)...");
+            CustomTranslationManager.initialize(context);
+            log("Custom translation manager initialized successfully");
+        }
+    }
+
+    // 設定當前包名
+    public static void setCurrentPackageName(String packageName) {
+        currentPackageName = packageName;
+    }
+
+    // 設定自訂 API URL
+    public static void setApiUrl(String apiUrl) {
+        customApiUrl = apiUrl;
+        log("API URL set to: " + (apiUrl != null ? apiUrl : "null"));
     }
 
     private static void log(String msg) {
@@ -108,6 +136,22 @@ class MultiSegmentTranslateTask {
             String cacheKey = srcLang + ":" + tgtLang + ":" + text;
             log(String.format("[%s] start translate", cacheKey));
 
+            // 1. 優先檢查自訂翻譯來源
+            if (currentPackageName != null) {
+                log(String.format("[%s] checking custom translations for package: %s", cacheKey, currentPackageName));
+                String customResult = CustomTranslationManager.getCustomTranslation(currentPackageName, text, tgtLang);
+                if (customResult != null) {
+                    seg.translatedText = customResult;
+                    log(String.format("[%s] hit from custom translation => %s", cacheKey, customResult));
+                    // 將自訂翻譯結果也加入快取
+                    translationCache.put(cacheKey, customResult);
+                    continue;
+                } else {
+                    log(String.format("[%s] no custom translation found for package: %s", cacheKey, currentPackageName));
+                }
+            }
+
+            // 2. 檢查記憶體快取
             log(String.format("[%s] checking cache", cacheKey));
             if (translationCache.containsKey(cacheKey)) {
                 seg.translatedText = translationCache.get(cacheKey);
@@ -115,6 +159,7 @@ class MultiSegmentTranslateTask {
                 continue;
             }
 
+            // 3. 檢查資料庫快取
             log(String.format("[%s] checking sqlite", cacheKey));
             String dbResult = getTranslationFromDatabase(cacheKey);
             if (dbResult != null) {
@@ -130,6 +175,7 @@ class MultiSegmentTranslateTask {
                 continue;
             }
 
+            // 4. 使用 API 翻譯
             String result = null;
             if (GEMINI_API_KEYS.length > 0) {
                 log(String.format("[%s] translate start by gemini", cacheKey));
