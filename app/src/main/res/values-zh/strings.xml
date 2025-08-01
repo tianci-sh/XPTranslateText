@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">XP翻譯文本</string>
+
+    <!-- 錯誤訊息 -->
+    <string name="module_not_enabled_title">模組未啟用</string>
+    <string name="module_not_enabled_message">Xposed模組未啟用。請在您的Xposed框架中啟用它。</string>
+
+    <!-- 日誌訊息 -->
+    <string name="lsposed_xsharedprefs_error">LSPosed XSharedPreferences未啟用或版本過舊。回退至 MODE_PRIVATE</string>
+
+    <!-- 偏好設定 -->
+    <string name="source_language_title">源語言</string>
+    <string name="source_language_summary">輸入源語言代碼（例如：auto, en, ja, ko）</string>
+    <string name="source_language_dialog_title">設置源語言</string>
+    <string name="target_language_title">目標語言</string>
+    <string name="target_language_summary">輸入目標語言代碼（例如：zh-TW, zh-CN, en, ja）</string>
+    <string name="target_language_dialog_title">設置目標語言</string>
+
+    <!-- 一般用語 -->
+    <string name="ok">確定</string>
+</resources>

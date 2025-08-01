@@ -1,3 +1,19 @@
 <resources>
     <string name="app_name">XPTranslateText</string>
+
+    <!-- Error messages -->
+    <string name="module_not_enabled_title">Module Not Enabled</string>
+    <string name="module_not_enabled_message">The Xposed module is not enabled. Please enable it in your Xposed framework.</string>
+    <string name="ok">OK</string>
+
+    <!-- Log messages -->
+    <string name="lsposed_xsharedprefs_error">LSPosed XSharedPreferences not enabled or older version. Fallback => MODE_PRIVATE</string>
+
+    <!-- Preferences -->
+    <string name="source_language_title">Source Language</string>
+    <string name="source_language_summary">Enter source language code (e.g.auto, en, ja, ko)</string>
+    <string name="source_language_dialog_title">Set Source Language</string>
+    <string name="target_language_title">Target Language</string>
+    <string name="target_language_summary">Enter target language code (e.g., zh-TW, zh-CN, en, ja)</string>
+    <string name="target_language_dialog_title">Set Target Language</string>
 </resources>

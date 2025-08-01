@@ -2,17 +2,17 @@
 
     <EditTextPreference
         android:key="source_lang"
-        android:title="Source Language"
-        android:summary="Enter source language code (e.g.auto, en, ja, ko)"
+        android:title="@string/source_language_title"
+        android:summary="@string/source_language_summary"
         android:defaultValue="auto"
-        android:dialogTitle="Set Source Language"
+        android:dialogTitle="@string/source_language_dialog_title"
         android:singleLine="true" />
 
     <EditTextPreference
         android:key="target_lang"
-        android:title="Target Language"
-        android:summary="Enter target language code (e.g., zh-TW, zh-CN, en, ja)"
+        android:title="@string/target_language_title"
+        android:summary="@string/target_language_summary"
         android:defaultValue="zh-TW"
-        android:dialogTitle="Set Target Language"
+        android:dialogTitle="@string/target_language_dialog_title"
         android:singleLine="true" />
 </PreferenceScreen>

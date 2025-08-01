@@ -39,9 +39,9 @@ public class SettingsActivity extends AppCompatActivity {
 
         if (pref == null) {
             new AlertDialog.Builder(this)
-                    .setTitle("Module Not Enabled")
-                    .setMessage("The Xposed module is not enabled. Please enable it in your Xposed framework.")
-                    .setPositiveButton("OK", (dialogInterface, i) -> finish())
+                    .setTitle(R.string.module_not_enabled_title)
+                    .setMessage(R.string.module_not_enabled_message)
+                    .setPositiveButton(R.string.ok, (dialogInterface, i) -> finish())
                     .show();
 
         } else {
@@ -66,7 +66,7 @@ public class SettingsActivity extends AppCompatActivity {
             try {
                 pm.setSharedPreferencesMode(Context.MODE_WORLD_READABLE);
             } catch (SecurityException e) {
-                Log.w(TAG, "LSPosed XSharedPreferences not enabled or older version. Fallback => MODE_PRIVATE", e);
+                Log.w(TAG, getContext().getString(R.string.lsposed_xsharedprefs_error), e);
                 pm.setSharedPreferencesMode(Context.MODE_PRIVATE);
             }
 
