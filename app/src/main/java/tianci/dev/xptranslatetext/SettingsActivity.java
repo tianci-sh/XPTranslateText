@@ -8,6 +8,8 @@ import android.util.Log;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.preference.EditTextPreference;
+import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
 
@@ -39,9 +41,9 @@ public class SettingsActivity extends AppCompatActivity {
 
         if (pref == null) {
             new AlertDialog.Builder(this)
-                    .setTitle("Module Not Enabled")
-                    .setMessage("The Xposed module is not enabled. Please enable it in your Xposed framework.")
-                    .setPositiveButton("OK", (dialogInterface, i) -> finish())
+                    .setTitle(R.string.module_not_enabled_title)
+                    .setMessage(R.string.module_not_enabled_message)
+                    .setPositiveButton(R.string.ok, (dialogInterface, i) -> finish())
                     .show();
 
         } else {
@@ -66,11 +68,37 @@ public class SettingsActivity extends AppCompatActivity {
             try {
                 pm.setSharedPreferencesMode(Context.MODE_WORLD_READABLE);
             } catch (SecurityException e) {
-                Log.w(TAG, "LSPosed XSharedPreferences not enabled or older version. Fallback => MODE_PRIVATE", e);
+                Log.w(TAG, getContext().getString(R.string.lsposed_xsharedprefs_error), e);
                 pm.setSharedPreferencesMode(Context.MODE_PRIVATE);
             }
 
             setPreferencesFromResource(R.xml.preferences, rootKey);
+
+            // 設置清除自訂 API URL 按鈕的點擊事件
+            Preference clearCustomApiPref = findPreference("clear_custom_api");
+            if (clearCustomApiPref != null) {
+                clearCustomApiPref.setOnPreferenceClickListener(preference -> {
+                    showClearCustomApiDialog();
+                    return true;
+                });
+            }
+        }
+
+        private void showClearCustomApiDialog() {
+            new AlertDialog.Builder(getContext())
+                    .setTitle(R.string.custom_api_clear_confirm_title)
+                    .setMessage(R.string.custom_api_clear_confirm_message)
+                    .setPositiveButton(R.string.clear, (dialog, which) -> {
+                        // 清除自訂 API URL
+                        EditTextPreference customApiUrlPref = findPreference("custom_api_url");
+                        if (customApiUrlPref != null) {
+                            customApiUrlPref.setText("");
+                            // 可選：清除翻譯快取
+                            CustomTranslationManager.clearCache();
+                        }
+                    })
+                    .setNegativeButton(R.string.cancel, null)
+                    .show();
         }
     }
 }
