@@ -44,24 +44,34 @@ public class HookMain implements IXposedHookLoadPackage {
 
         String sourceLang = "auto";
         String targetLang = "zh-TW";
+        String customApiUrl = null;
+        int translationDelay = 0;
 
         if (prefs.getFile().canRead()) {
             prefs.reload();
             sourceLang = prefs.getString("source_lang", sourceLang);
             targetLang = prefs.getString("target_lang", targetLang);
+            customApiUrl = prefs.getString("custom_api_url", null); // 讀取自訂 API URL
+            translationDelay = Integer.parseInt(prefs.getString("translation_delay", "0")); // 讀取翻譯延遲設定
 
-            XposedBridge.log("sourceLang=" + sourceLang + ", targetLang=" + targetLang);
+            XposedBridge.log("sourceLang=" + sourceLang + ", targetLang=" + targetLang + ", delay=" + translationDelay + "ms");
         } else {
             XposedBridge.log("Cannot read XSharedPreferences => " + prefs.getFile().getAbsolutePath()
-                    + ". Fallback to default: auto->zh-TW");
+                    + ". Fallback to default: auto->zh-TW, delay=0ms");
         }
 
         final String finalSourceLang = sourceLang;
         final String finalTargetLang = targetLang;
+        final String finalCustomApiUrl = customApiUrl; // 傳遞自訂 API URL
+        final int finalTranslationDelay = translationDelay; // 傳遞翻譯延遲設定
 
-        hookAllCustomSetTextClasss(lpparam, finalSourceLang, finalTargetLang);
-        hookTextView(lpparam, finalSourceLang, finalTargetLang);
-        hookWebView(lpparam, finalSourceLang, finalTargetLang);
+        // 設置當前包名給 MultiSegmentTranslateTask 用於自訂翻譯查詢
+        MultiSegmentTranslateTask.setCurrentPackageName(lpparam.packageName);
+        MultiSegmentTranslateTask.setApiUrl(finalCustomApiUrl);
+
+        hookAllCustomSetTextClasss(lpparam, finalSourceLang, finalTargetLang, finalTranslationDelay);
+        hookTextView(lpparam, finalSourceLang, finalTargetLang, finalTranslationDelay);
+        hookWebView(lpparam, finalSourceLang, finalTargetLang, finalTranslationDelay);
 
         XposedHelpers.findAndHookMethod(
                 "android.app.Activity",
@@ -81,7 +91,7 @@ public class HookMain implements IXposedHookLoadPackage {
         );
     }
 
-    private void hookWebView(XC_LoadPackage.LoadPackageParam lpparam, String finalSourceLang, String finalTargetLang) {
+    private void hookWebView(XC_LoadPackage.LoadPackageParam lpparam, String finalSourceLang, String finalTargetLang, int finalTranslationDelay) {
         XposedHelpers.findAndHookConstructor(
                 "android.webkit.WebView",
                 lpparam.classLoader,
@@ -131,7 +141,7 @@ public class HookMain implements IXposedHookLoadPackage {
         );
     }
 
-    private void hookTextView(XC_LoadPackage.LoadPackageParam lpparam, String finalSourceLang, String finalTargetLang) {
+    private void hookTextView(XC_LoadPackage.LoadPackageParam lpparam, String finalSourceLang, String finalTargetLang, int finalTranslationDelay) {
         XposedHelpers.findAndHookMethod(
                 "android.widget.TextView",
                 lpparam.classLoader,
@@ -146,6 +156,11 @@ public class HookMain implements IXposedHookLoadPackage {
                         CharSequence originalText = (CharSequence) param.args[0];
 
                         if (originalText == null || originalText.length() == 0) {
+                            return;
+                        }
+
+                        // 排除 EditText 和其子類
+                        if (isEditTextOrSubclass(param.thisObject)) {
                             return;
                         }
 
@@ -175,14 +190,15 @@ public class HookMain implements IXposedHookLoadPackage {
                                 translationId,
                                 segments,
                                 finalSourceLang,
-                                finalTargetLang
+                                finalTargetLang,
+                                finalTranslationDelay
                         );
                     }
                 }
         );
     }
 
-    private void hookAllCustomSetTextClasss(XC_LoadPackage.LoadPackageParam lpparam, String finalSourceLang, String finalTargetLang) {
+    private void hookAllCustomSetTextClasss(XC_LoadPackage.LoadPackageParam lpparam, String finalSourceLang, String finalTargetLang, int finalTranslationDelay) {
         try {
             Field pathListField = XposedHelpers.findField(lpparam.classLoader.getClass(), "pathList");
             Object pathList = pathListField.get(lpparam.classLoader);
@@ -258,7 +274,8 @@ public class HookMain implements IXposedHookLoadPackage {
                                                 translationId,
                                                 segments,
                                                 finalSourceLang,
-                                                finalTargetLang
+                                                finalTargetLang,
+                                                finalTranslationDelay
                                         );
                                     }
                                 });
@@ -493,5 +510,39 @@ public class HookMain implements IXposedHookLoadPackage {
                 + "}\n"
                 + "mainTranslateFlow();\n"
                 + "watchScrollAndTranslate();\n";
+    }
+
+    private boolean isEditTextOrSubclass(Object obj) {
+        if (obj == null) return false;
+
+        Class<?> clazz = obj.getClass();
+        while (clazz != null) {
+            String className = clazz.getName();
+
+            // 檢查 EditText 及其子類
+            if (className.equals("android.widget.EditText")) {
+                return true;
+            }
+
+            // 檢查 AutoCompleteTextView 及其子類
+            if (className.equals("android.widget.AutoCompleteTextView")) {
+                return true;
+            }
+
+            // 檢查 MultiAutoCompleteTextView
+            if (className.equals("android.widget.MultiAutoCompleteTextView")) {
+                return true;
+            }
+
+            // 檢查其他輸入相關的控件
+            if (className.contains("EditText") ||
+                className.contains("Input") ||
+                className.contains("Editor")) {
+                return true;
+            }
+
+            clazz = clazz.getSuperclass();
+        }
+        return false;
     }
 }
