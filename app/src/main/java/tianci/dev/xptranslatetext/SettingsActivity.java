@@ -89,10 +89,16 @@ public class SettingsActivity extends AppCompatActivity {
                     .setTitle(R.string.custom_api_clear_confirm_title)
                     .setMessage(R.string.custom_api_clear_confirm_message)
                     .setPositiveButton(R.string.clear, (dialog, which) -> {
-                        // 清除自訂 API URL
+                        // 清除自訂 API URL，恢復到 defaultValue
                         EditTextPreference customApiUrlPref = findPreference("custom_api_url");
                         if (customApiUrlPref != null) {
-                            customApiUrlPref.setText("");
+                            // 移除當前值，這樣會恢復到 XML 中的 defaultValue
+                            SharedPreferences prefs = customApiUrlPref.getSharedPreferences();
+                            if (prefs != null) {
+                                prefs.edit().remove("custom_api_url").apply();
+                                // 重新整理 preference 的顯示
+                                customApiUrlPref.setText(null);
+                            }
                             // 可選：清除翻譯快取
                             CustomTranslationManager.clearCache();
                         }

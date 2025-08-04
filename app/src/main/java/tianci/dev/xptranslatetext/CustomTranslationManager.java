@@ -208,6 +208,21 @@ public class CustomTranslationManager {
      * @return 翻譯結果，如果沒有找到則返回 null
      */
     public static String getCustomTranslation(String packageName, String originalText, String targetLang) {
+        // 如果正在載入中，等待最多 3 秒
+        if (isLoading && !isLoaded) {
+            log("Custom translations still loading, waiting...");
+            int waitCount = 0;
+            while (isLoading && waitCount < 30) { // 等待最多 3 秒 (30 * 100ms)
+                try {
+                    Thread.sleep(100);
+                    waitCount++;
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+            log("Wait completed. isLoaded: " + isLoaded + ", waitCount: " + waitCount);
+        }
         if (!isLoaded || packageName == null || originalText == null) {
             return null;
         }

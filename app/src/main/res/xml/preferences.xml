@@ -19,6 +19,15 @@
             android:defaultValue="zh-TW"
             android:singleLine="true" />
 
+        <EditTextPreference
+            android:key="translation_delay"
+            android:title="@string/translation_delay_title"
+            android:summary="@string/translation_delay_summary"
+            android:dialogTitle="@string/translation_delay_dialog_title"
+            android:defaultValue="0"
+            android:inputType="number"
+            android:singleLine="true" />
+
     </PreferenceCategory>
 
     <PreferenceCategory android:title="@string/custom_api_category">

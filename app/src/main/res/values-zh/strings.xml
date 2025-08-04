@@ -21,6 +21,11 @@
     <string name="translation_settings_category">翻译设置</string>
     <string name="custom_api_category">自定义翻译 API</string>
 
+    <!-- 翻译延迟设置 -->
+    <string name="translation_delay_title">翻译延迟</string>
+    <string name="translation_delay_summary">翻译开始前的延迟时间（毫秒）</string>
+    <string name="translation_delay_dialog_title">设置翻译延迟</string>
+
     <!-- 自定义 API 设置 -->
     <string name="custom_api_url_title">自定义 API URL</string>
     <string name="custom_api_url_summary">设置自定义翻译源的 API 网址</string>

@@ -31,6 +31,11 @@
     <string name="clear">清除</string>
     <string name="cancel">取消</string>
 
+    <!-- 翻譯延遲設定 -->
+    <string name="translation_delay_title">翻譯延遲</string>
+    <string name="translation_delay_summary">翻譯開始前的延遲時間（毫秒）</string>
+    <string name="translation_delay_dialog_title">設定翻譯延遲</string>
+
     <!-- 一般用語 -->
     <string name="ok">確定</string>
 </resources>

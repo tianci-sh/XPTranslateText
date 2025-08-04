@@ -92,9 +92,22 @@ class MultiSegmentTranslateTask {
             final int translationId,
             final List<Segment> segments,
             final String srcLang,
-            final String tgtLang
+            final String tgtLang,
+            final int delayMs
     ) {
         TRANSLATION_EXECUTOR.submit(() -> {
+            // 實現翻譯延遲
+            if (delayMs > 0) {
+                try {
+                    log("Translation delayed for " + delayMs + "ms");
+                    Thread.sleep(delayMs);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    log("Translation delay interrupted");
+                    return;
+                }
+            }
+
             doTranslateSegments(segments, srcLang, tgtLang);
 
             new Handler(Looper.getMainLooper()).post(() -> {
