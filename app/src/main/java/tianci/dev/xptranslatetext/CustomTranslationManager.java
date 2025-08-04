@@ -68,11 +68,15 @@ public class CustomTranslationManager {
         }
 
         isLoading = true;
-        try {
-            loadFromUrl();
-        } finally {
-            isLoading = false;
-        }
+
+        // 在背景線程中執行網路請求
+        new Thread(() -> {
+            try {
+                loadFromUrl();
+            } finally {
+                isLoading = false;
+            }
+        }).start();
     }
 
     /**
@@ -85,6 +89,7 @@ public class CustomTranslationManager {
         }
 
         try {
+            log("Attempting to load from URL: " + customApiUrl);
             URL url = new URL(customApiUrl);
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setConnectTimeout(10000);
@@ -92,17 +97,44 @@ public class CustomTranslationManager {
             connection.setRequestMethod("GET");
             connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Android; Mobile)");
 
+            log("Connecting to server...");
             int responseCode = connection.getResponseCode();
+            log("Server response code: " + responseCode);
+
             if (responseCode == HttpURLConnection.HTTP_OK) {
                 String jsonString = readInputStream(connection.getInputStream());
+                log("Received JSON data, length: " + jsonString.length());
                 parseTranslations(jsonString);
                 log("Loaded custom translations from online API");
             } else {
-                log("Failed to load custom translations from online API: " + responseCode);
+                log("Failed to load custom translations from online API: HTTP " + responseCode);
+                // 嘗試讀取錯誤訊息
+                try {
+                    InputStream errorStream = connection.getErrorStream();
+                    if (errorStream != null) {
+                        String errorMessage = readInputStream(errorStream);
+                        log("Server error message: " + errorMessage);
+                    }
+                } catch (Exception errorEx) {
+                    log("Could not read error stream: " + errorEx.getClass().getSimpleName());
+                }
             }
             connection.disconnect();
+        } catch (java.net.UnknownHostException e) {
+            log("Error loading custom translations: Unknown host - " + e.getMessage());
+        } catch (java.net.SocketTimeoutException e) {
+            log("Error loading custom translations: Connection timeout - " + e.getMessage());
+        } catch (javax.net.ssl.SSLException e) {
+            log("Error loading custom translations: SSL error - " + e.getMessage());
+        } catch (java.net.ConnectException e) {
+            log("Error loading custom translations: Connection refused - " + e.getMessage());
         } catch (Exception e) {
-            log("Error loading custom translations from online API: " + e.getMessage());
+            String errorMessage = e.getMessage();
+            if (errorMessage == null) {
+                errorMessage = e.getClass().getSimpleName();
+            }
+            log("Error loading custom translations from online API: " + errorMessage);
+            log("Exception type: " + e.getClass().getName());
         }
     }
 
