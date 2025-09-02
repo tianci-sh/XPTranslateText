@@ -79,7 +79,24 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 
-        
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginVertical="12dp"
+            android:background="@android:color/darker_gray" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/model_section_title"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btn_model_manager"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/manage_models" />
 
         <TextView
             android:layout_width="wrap_content"

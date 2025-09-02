@@ -8,4 +8,18 @@
     <string name="source_lang">來源語言</string>
     <string name="target_lang">目標語言</string>
     <string name="server_hint">提示：首次使用可能需要下載 ML Kit 語言模型（需網路）。</string>
+    <string name="model_section_title">模型管理</string>
+    <string name="manage_models">管理已下載的模型</string>
+    <string name="model_manager_title">ML Kit 模型管理</string>
+    <string name="refresh_models">重新整理</string>
+    <string name="delete_all_models">全部刪除</string>
+    <string name="empty_models">目前沒有已下載的模型</string>
+    <string name="confirm_delete_title">確認刪除</string>
+    <string name="confirm_delete_single">要刪除此模型（%1$s）嗎？</string>
+    <string name="confirm_delete_all">要刪除全部已下載的模型嗎？</string>
+    <string name="deleting">刪除中…</string>
+    <string name="delete_success">刪除完成</string>
+    <string name="delete_failed">刪除失敗：%1$s</string>
+    <string name="last_used_label">最近使用: %1$s</string>
+    <string name="last_used_never">—</string>
 </resources>

@@ -72,6 +72,9 @@ public class HomeActivity extends AppCompatActivity {
         targetSpinner = findViewById(R.id.spinner_target_lang);
         serverSwitch = findViewById(R.id.switch_server);
         statusText = findViewById(R.id.text_status);
+        findViewById(R.id.btn_model_manager).setOnClickListener(v -> {
+            startActivity(new Intent(this, ModelManagerActivity.class));
+        });
 
         setupLanguageSpinners();
         loadInitialSelections();

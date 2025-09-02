@@ -7,4 +7,8 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Monochrome palette (Light) to match night variants -->
+    <color name="mono_surface">#FFFFFF</color>
+    <color name="mono_on_surface">#121212</color>
 </resources>

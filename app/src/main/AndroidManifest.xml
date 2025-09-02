@@ -42,6 +42,11 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".ModelManagerActivity"
+            android:exported="false"
+            android:label="@string/model_manager_title" />
+
         <service
             android:name=".LocalTranslationService"
             android:exported="false"

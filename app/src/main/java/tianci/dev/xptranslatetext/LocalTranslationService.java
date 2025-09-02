@@ -238,6 +238,12 @@ public class LocalTranslationService extends Service {
                 DownloadConditions cond = new DownloadConditions.Builder().build();
                 Tasks.await(translator.downloadModelIfNeeded(cond));
 
+                // 記錄最近使用時間（以語言代碼為鍵）
+                try {
+                    ModelInfoUtil.markModelUsed(this, mlSrc);
+                    ModelInfoUtil.markModelUsed(this, mlDst);
+                } catch (Throwable ignored) { }
+
                 String translated = Tasks.await(translator.translate(text));
                 String payload = "{\"code\":0,\"text\":" + jsonString(translated) + "}";
                 respond(os, 200, payload);

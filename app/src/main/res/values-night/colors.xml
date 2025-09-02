@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Monochrome palette (Dark) -->
+    <color name="mono_primary">#EDEDED</color>
+    <color name="mono_primary_variant">#D6D6D6</color>
+    <color name="mono_on_primary">#121212</color>
+
+    <color name="mono_secondary">#CFCFCF</color>
+    <color name="mono_secondary_variant">#BDBDBD</color>
+    <color name="mono_on_secondary">#121212</color>
+
+    <color name="mono_background">#0B0B0B</color>
+    <color name="mono_surface">#121212</color>
+    <color name="mono_on_surface">#EDEDED</color>
+    <color name="mono_outline">#303030</color>
+
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>
+
