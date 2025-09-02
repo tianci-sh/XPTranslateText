@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 顯示名稱（來源） -->
+    <string-array name="language_entries_source">
+        <item>自動偵測 (auto)</item>
+        <item>英文 (en)</item>
+        <item>日文 (ja)</item>
+        <item>韓文 (ko)</item>
+        <item>中文（繁體）(zh-TW)</item>
+        <item>中文（簡體）(zh-CN)</item>
+        <item>法文 (fr)</item>
+        <item>德文 (de)</item>
+        <item>西班牙文 (es)</item>
+        <item>俄文 (ru)</item>
+        <item>義大利文 (it)</item>
+        <item>葡萄牙文 (pt)</item>
+        <item>越南文 (vi)</item>
+        <item>泰文 (th)</item>
+        <item>印尼文 (id)</item>
+        <item>印地文 (hi)</item>
+    </string-array>
+
+    <!-- 實際值（來源） -->
+    <string-array name="language_values_source">
+        <item>auto</item>
+        <item>en</item>
+        <item>ja</item>
+        <item>ko</item>
+        <item>zh-TW</item>
+        <item>zh-CN</item>
+        <item>fr</item>
+        <item>de</item>
+        <item>es</item>
+        <item>ru</item>
+        <item>it</item>
+        <item>pt</item>
+        <item>vi</item>
+        <item>th</item>
+        <item>id</item>
+        <item>hi</item>
+    </string-array>
+
+    <!-- 顯示名稱（目標） -->
+    <string-array name="language_entries_target">
+        <item>中文（繁體）(zh-TW)</item>
+        <item>中文（簡體）(zh-CN)</item>
+        <item>英文 (en)</item>
+        <item>日文 (ja)</item>
+        <item>韓文 (ko)</item>
+        <item>法文 (fr)</item>
+        <item>德文 (de)</item>
+        <item>西班牙文 (es)</item>
+        <item>俄文 (ru)</item>
+        <item>義大利文 (it)</item>
+        <item>葡萄牙文 (pt)</item>
+        <item>越南文 (vi)</item>
+        <item>泰文 (th)</item>
+        <item>印尼文 (id)</item>
+        <item>印地文 (hi)</item>
+    </string-array>
+
+    <!-- 實際值（目標） -->
+    <string-array name="language_values_target">
+        <item>zh-TW</item>
+        <item>zh-CN</item>
+        <item>en</item>
+        <item>ja</item>
+        <item>ko</item>
+        <item>fr</item>
+        <item>de</item>
+        <item>es</item>
+        <item>ru</item>
+        <item>it</item>
+        <item>pt</item>
+        <item>vi</item>
+        <item>th</item>
+        <item>id</item>
+        <item>hi</item>
+    </string-array>
+</resources>
+

@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">XPTranslateText</string>
+    <string name="home_title">Local Translation Service</string>
+    <string name="server_switch">Start Local Translation Server</string>
+    <string name="server_running">Running: http://127.0.0.1:%1$d</string>
+    <string name="server_stopped">Not running</string>
+    <string name="lang_section_title">Language Settings</string>
+    <string name="source_lang">Source language</string>
+    <string name="target_lang">Target language</string>
+    <string name="server_hint">Hint: ML Kit may download models on first use (requires network).</string>
+</resources>
