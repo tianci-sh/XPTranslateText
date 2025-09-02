@@ -30,6 +30,7 @@ import de.robv.android.xposed.XposedHelpers;
 import tianci.dev.xptranslatetext.HookMain;
 import tianci.dev.xptranslatetext.data.TranslationDatabaseHelper;
 import tianci.dev.xptranslatetext.util.KeyObfuscator;
+import tianci.dev.xptranslatetext.service.LocalTranslationService;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -38,7 +39,6 @@ import java.util.concurrent.Executors;
  * 用來翻譯多個 Segment
  */
 public class MultiSegmentTranslateTask {
-    private static boolean DEBUG = true;
     private static final ExecutorService TRANSLATION_EXECUTOR = Executors.newCachedThreadPool();
     private static final ExecutorService DB_EXECUTOR = Executors.newSingleThreadExecutor();
 
@@ -58,9 +58,7 @@ public class MultiSegmentTranslateTask {
     }
 
     private static void log(String msg) {
-        if (DEBUG) {
-            XposedBridge.log(msg);
-        }
+        XposedBridge.log(msg);
     }
 
     public static void translateSegmentsAsync(
@@ -134,8 +132,13 @@ public class MultiSegmentTranslateTask {
                 continue;
             }
 
-            String result = null;
-            if (GEMINI_API_KEYS.length > 0) {
+            log(String.format("[%s] translate start by local service", cacheKey));
+            String result = translateByLocalService(text, srcLang, tgtLang, cacheKey);
+            log(String.format("[%s] translate end by local service => %s", cacheKey, result));
+            if (result != null) {
+                putTranslationToDatabase(cacheKey, result);
+            }
+            if (result == null && GEMINI_API_KEYS.length > 0) {
                 log(String.format("[%s] translate start by gemini", cacheKey));
                 result = translateByGemini(text, tgtLang, cacheKey);
                 log(String.format("[%s] translate end by gemini => %s", cacheKey, result));
@@ -157,6 +160,45 @@ public class MultiSegmentTranslateTask {
                 seg.translatedText = result;
                 translationCache.put(cacheKey, result);
             }
+        }
+    }
+
+    private static String translateByLocalService(String text, String src, String dst, String cacheKey) {
+        try {
+            String urlStr = String.format(
+                    "http://127.0.0.1:%d/translate?src=%s&dst=%s&q=%s",
+                    LocalTranslationService.PORT,
+                    URLEncoder.encode(src == null ? "auto" : src, "UTF-8"),
+                    URLEncoder.encode(dst == null ? "zh-TW" : dst, "UTF-8"),
+                    URLEncoder.encode(text, "UTF-8")
+            );
+
+            log(String.format("[%s] access local service => %s", cacheKey, urlStr));
+            URL url = new URL(urlStr);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setConnectTimeout(1000);
+            conn.setReadTimeout(3000);
+
+            int status = conn.getResponseCode();
+            if (status != 200) {
+                return null;
+            }
+            try (BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"))) {
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = in.readLine()) != null) {
+                    sb.append(line);
+                }
+                String body = sb.toString();
+                JSONObject obj = new JSONObject(body);
+                if (obj.optInt("code", -1) != 0) return null;
+                String result = obj.optString("text", null);
+                return result == null ? null : result.trim();
+            }
+        } catch (Exception e) {
+            log(String.format("[%s] translate exception in local service => %s", cacheKey, e.getMessage()));
+            return null;
         }
     }
 
@@ -377,10 +419,20 @@ public class MultiSegmentTranslateTask {
         log(String.format("[%s] start translate", cacheKey));
 
         // web translate don't cache it
-        String result = null;
-        log(String.format("[%s] translate start by free google api", cacheKey));
-        result = translateByGoogleFreeApi(text, srcLang, tgtLang, cacheKey);
-        log(String.format("[%s] translate end by free google api => %s", cacheKey, result));
+        log(String.format("[%s] translate start by local service", cacheKey));
+        String result = translateByLocalService(text, srcLang, tgtLang, cacheKey);
+        log(String.format("[%s] translate end by local service => %s", cacheKey, result));
+
+        if (result == null && GEMINI_API_KEYS.length > 0) {
+            log(String.format("[%s] translate start by gemini", cacheKey));
+            result = translateByGemini(text, tgtLang, cacheKey);
+            log(String.format("[%s] translate end by gemini => %s", cacheKey, result));
+        }
+        if (result == null) {
+            log(String.format("[%s] translate start by free google api", cacheKey));
+            result = translateByGoogleFreeApi(text, srcLang, tgtLang, cacheKey);
+            log(String.format("[%s] translate end by free google api => %s", cacheKey, result));
+        }
 
         if (result == null) {
             webView.post(() -> webView.evaluateJavascript(String.format("javascript:onXPTranslateCompleted(\'%s\',\'%s\')", requestId, text), null));

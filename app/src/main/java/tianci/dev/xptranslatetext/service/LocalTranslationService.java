@@ -39,8 +39,10 @@ import java.net.Socket;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -62,6 +64,8 @@ public class LocalTranslationService extends Service {
     private ServerSocket serverSocket;
     private ExecutorService clientExecutor;
     private Thread serverThread;
+    private final Map<String, Translator> translatorPool = new ConcurrentHashMap<>();
+    private volatile LanguageIdentifier langIdClient;
 
     public static boolean isRunning() {
         return RUNNING.get();
@@ -70,7 +74,8 @@ public class LocalTranslationService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        clientExecutor = Executors.newCachedThreadPool();
+        int threads = Math.max(4, Runtime.getRuntime().availableProcessors() * 2);
+        clientExecutor = Executors.newFixedThreadPool(threads);
         createNotificationChannel();
     }
 
@@ -95,6 +100,17 @@ public class LocalTranslationService extends Service {
     public void onDestroy() {
         stopServer();
         if (clientExecutor != null) clientExecutor.shutdownNow();
+        try {
+            for (Translator t : translatorPool.values()) {
+                try { t.close(); } catch (Throwable ignored) {}
+            }
+        } finally {
+            translatorPool.clear();
+        }
+        if (langIdClient != null) {
+            try { langIdClient.close(); } catch (Throwable ignored) {}
+            langIdClient = null;
+        }
         super.onDestroy();
     }
 
@@ -131,7 +147,7 @@ public class LocalTranslationService extends Service {
         RUNNING.set(true);
         serverThread = new Thread(() -> {
             try {
-                serverSocket = new ServerSocket(PORT, 0);
+                serverSocket = new ServerSocket(PORT, 128);
                 while (RUNNING.get()) {
                     final Socket socket = serverSocket.accept();
                     clientExecutor.execute(() -> handleClient(socket));
@@ -208,9 +224,7 @@ public class LocalTranslationService extends Service {
 
             // 自動語言識別
             if ("auto".equalsIgnoreCase(src)) {
-                LanguageIdentifier idClient = LanguageIdentification.getClient(
-                        new LanguageIdentificationOptions.Builder().setConfidenceThreshold(0.5f).build()
-                );
+                LanguageIdentifier idClient = getLanguageIdentifier();
                 try {
                     String tag = Tasks.await(idClient.identifyLanguage(text));
                     if (tag == null || "und".equalsIgnoreCase(tag)) {
@@ -231,12 +245,7 @@ public class LocalTranslationService extends Service {
             }
 
             try {
-                TranslatorOptions options = new TranslatorOptions.Builder()
-                        .setSourceLanguage(mlSrc)
-                        .setTargetLanguage(mlDst)
-                        .build();
-                Translator translator = Translation.getClient(options);
-
+                Translator translator = getOrCreateTranslator(mlSrc, mlDst);
                 // 下載必要的模型（若未下載）
                 DownloadConditions cond = new DownloadConditions.Builder().build();
                 Tasks.await(translator.downloadModelIfNeeded(cond));
@@ -263,8 +272,41 @@ public class LocalTranslationService extends Service {
 
     private static String normalizeToMlkitCode(String lang) {
         if (lang == null) return null;
-        // 直接以 ML Kit 提供的 fromLanguageTag 取得對應代碼（例如 zh-TW -> zh）
-        return TranslateLanguage.fromLanguageTag(lang);
+        try {
+            String lower = lang.replace('_', '-').toLowerCase(Locale.ROOT);
+            // 將所有中文變體（zh, zh-CN, zh-TW, zh-HK, zh-Hans, zh-Hant...）統一映射為 ML Kit 的 zh
+            if (lower.equals("zh") || lower.startsWith("zh-")) {
+                return "zh";
+            }
+            String code = TranslateLanguage.fromLanguageTag(lang);
+            return code;
+        } catch (Throwable ignored) {
+            return TranslateLanguage.fromLanguageTag(lang);
+        }
+    }
+
+    private Translator getOrCreateTranslator(String mlSrc, String mlDst) {
+        String key = mlSrc + "->" + mlDst;
+        return translatorPool.computeIfAbsent(key, k -> {
+            TranslatorOptions options = new TranslatorOptions.Builder()
+                    .setSourceLanguage(mlSrc)
+                    .setTargetLanguage(mlDst)
+                    .build();
+            return Translation.getClient(options);
+        });
+    }
+
+    private LanguageIdentifier getLanguageIdentifier() {
+        if (langIdClient == null) {
+            synchronized (this) {
+                if (langIdClient == null) {
+                    langIdClient = LanguageIdentification.getClient(
+                            new LanguageIdentificationOptions.Builder().setConfidenceThreshold(0.5f).build()
+                    );
+                }
+            }
+        }
+        return langIdClient;
     }
 
     private static Map<String, String> parseQuery(String pathWithQuery) {
