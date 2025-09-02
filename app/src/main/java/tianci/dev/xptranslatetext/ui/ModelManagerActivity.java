@@ -1,4 +1,4 @@
-package tianci.dev.xptranslatetext;
+package tianci.dev.xptranslatetext.ui;
 
 import android.os.Bundle;
 import android.view.MenuItem;
@@ -28,6 +28,9 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import tianci.dev.xptranslatetext.R;
+import tianci.dev.xptranslatetext.util.ModelInfoUtil;
 
 public class ModelManagerActivity extends AppCompatActivity {
 

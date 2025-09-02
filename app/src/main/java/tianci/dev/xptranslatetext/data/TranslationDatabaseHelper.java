@@ -1,4 +1,4 @@
-package tianci.dev.xptranslatetext;
+package tianci.dev.xptranslatetext.data;
 
 import android.content.Context;
 import android.database.Cursor;
@@ -6,7 +6,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.content.ContentValues;
 
-class TranslationDatabaseHelper extends SQLiteOpenHelper {
+public class TranslationDatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "xp_translation_text_cache.db";
     private static final int DATABASE_VERSION = 1;
@@ -21,7 +21,7 @@ class TranslationDatabaseHelper extends SQLiteOpenHelper {
                     + COL_TRANSLATED_TEXT + " TEXT"
                     + ")";
 
-    TranslationDatabaseHelper(Context context) {
+    public TranslationDatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
 
@@ -35,7 +35,7 @@ class TranslationDatabaseHelper extends SQLiteOpenHelper {
 
     }
 
-    String getTranslation(String cacheKey) {
+    public String getTranslation(String cacheKey) {
         SQLiteDatabase db = this.getReadableDatabase();
         String translation = null;
         Cursor cursor = null;
@@ -58,7 +58,7 @@ class TranslationDatabaseHelper extends SQLiteOpenHelper {
         return translation;
     }
 
-    void putTranslation(String cacheKey, String translatedText) {
+    public void putTranslation(String cacheKey, String translatedText) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues cv = new ContentValues();
         cv.put(COL_CACHE_KEY, cacheKey);

@@ -1,4 +1,4 @@
-package tianci.dev.xptranslatetext;
+package tianci.dev.xptranslatetext.service;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -23,6 +23,9 @@ import com.google.mlkit.nl.translate.TranslateLanguage;
 import com.google.mlkit.nl.translate.Translation;
 import com.google.mlkit.nl.translate.Translator;
 import com.google.mlkit.nl.translate.TranslatorOptions;
+
+import tianci.dev.xptranslatetext.R;
+import tianci.dev.xptranslatetext.util.ModelInfoUtil;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;

@@ -1,9 +1,9 @@
-package tianci.dev.xptranslatetext;
+package tianci.dev.xptranslatetext.translate;
 
 import java.util.ArrayList;
 import java.util.List;
 
-class Segment {
+public class Segment {
     public int start;
     public int end;
     public String text;

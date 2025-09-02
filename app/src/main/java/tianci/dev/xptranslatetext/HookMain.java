@@ -27,6 +27,10 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 import de.robv.android.xposed.XSharedPreferences;
 import tianci.dev.xptranslatetext.rules.Telegram;
+import tianci.dev.xptranslatetext.translate.MultiSegmentTranslateTask;
+import tianci.dev.xptranslatetext.translate.Segment;
+import tianci.dev.xptranslatetext.translate.SpanSpec;
+import tianci.dev.xptranslatetext.translate.WebViewTranslationBridge;
 
 public class HookMain implements IXposedHookLoadPackage {
 

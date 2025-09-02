@@ -1,6 +1,6 @@
-package tianci.dev.xptranslatetext;
+package tianci.dev.xptranslatetext.translate;
 
-class SpanSpec {
+public class SpanSpec {
     public Object span;
     public int start;
     public int end;

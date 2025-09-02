@@ -1,4 +1,4 @@
-package tianci.dev.xptranslatetext;
+package tianci.dev.xptranslatetext.translate;
 
 import android.content.Context;
 import android.os.Handler;
@@ -27,13 +27,17 @@ import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 
+import tianci.dev.xptranslatetext.HookMain;
+import tianci.dev.xptranslatetext.data.TranslationDatabaseHelper;
+import tianci.dev.xptranslatetext.util.KeyObfuscator;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
  * 用來翻譯多個 Segment
  */
-class MultiSegmentTranslateTask {
+public class MultiSegmentTranslateTask {
     private static boolean DEBUG = true;
     private static final ExecutorService TRANSLATION_EXECUTOR = Executors.newCachedThreadPool();
     private static final ExecutorService DB_EXECUTOR = Executors.newSingleThreadExecutor();

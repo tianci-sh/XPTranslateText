@@ -1,4 +1,4 @@
-package tianci.dev.xptranslatetext;
+package tianci.dev.xptranslatetext.translate;
 
 import android.util.Log;
 import android.webkit.JavascriptInterface;
