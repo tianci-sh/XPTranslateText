@@ -1,25 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp">
 
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/mono_surface"
-        android:navigationIcon="@android:drawable/ic_menu_close_clear_cancel"
-        android:title="@string/model_manager_title" />
-
-    <TextView
-        android:id="@+id/text_title"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/model_manager_title"
-        android:textColor="@color/mono_on_surface"
-        android:textAppearance="@style/TextAppearance.AppCompat.Large" />
+    <!-- 使用系統 ActionBar，移除自訂 Toolbar -->
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -45,23 +32,41 @@
             android:text="@string/delete_all_models" />
     </LinearLayout>
 
-    <ProgressBar
+    <com.google.android.material.progressindicator.CircularProgressIndicator
         android:id="@+id/progress"
-        style="@android:style/Widget.DeviceDefault.Light.ProgressBar.Small"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:visibility="gone" />
+        android:visibility="gone"
+        app:indicatorSize="32dp" />
 
-    <ListView
-        android:id="@+id/list_models"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_marginTop="8dp"
-        android:layout_weight="1"
-        android:divider="@android:color/darker_gray"
-        android:dividerHeight="1dp"
-        android:choiceMode="singleChoice" />
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler_models"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:scrollbars="vertical" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="16dp"
+            android:layout_gravity="top"
+            android:background="@drawable/fade_top" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="16dp"
+            android:layout_gravity="bottom"
+            android:background="@drawable/fade_bottom" />
+    </FrameLayout>
 
     <TextView
         android:id="@+id/empty_view"

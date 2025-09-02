@@ -7,6 +7,7 @@ appcompat = "1.7.0"
 material = "1.12.0"
 translate = "17.0.3"
 langid = "17.0.6"
+recyclerview = "1.3.2"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -16,6 +17,7 @@ appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "a
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 mlkit-translate = { group = "com.google.mlkit", name = "translate", version.ref = "translate" }
 mlkit-language-id = { group = "com.google.mlkit", name = "language-id", version.ref = "langid" }
+recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version.ref = "recyclerview" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

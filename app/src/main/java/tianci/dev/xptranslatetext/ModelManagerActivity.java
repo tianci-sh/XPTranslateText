@@ -1,19 +1,22 @@
 package tianci.dev.xptranslatetext;
 
 import android.os.Bundle;
+import android.view.MenuItem;
 import android.view.View;
 import android.text.format.DateUtils;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.ListView;
-import android.widget.ProgressBar;
+import android.graphics.Color;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.color.MaterialColors;
+import com.google.android.material.divider.MaterialDividerItemDecoration;
 import com.google.android.gms.tasks.Tasks;
 import com.google.mlkit.common.model.RemoteModelManager;
 import com.google.mlkit.nl.translate.TranslateLanguage;
@@ -28,14 +31,14 @@ import java.util.concurrent.Executors;
 
 public class ModelManagerActivity extends AppCompatActivity {
 
-    private ListView listView;
+    private RecyclerView recyclerView;
     private TextView emptyView;
-    private ProgressBar progress;
+    private com.google.android.material.progressindicator.CircularProgressIndicator progress;
     private Button btnRefresh;
     private Button btnDeleteAll;
 
     private final List<TranslateRemoteModel> models = new ArrayList<>();
-    private ArrayAdapter<String> adapter;
+    private ModelAdapter adapter;
 
     private final ExecutorService io = Executors.newSingleThreadExecutor();
 
@@ -44,26 +47,39 @@ public class ModelManagerActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_model_manager);
 
-        androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.toolbar);
-        if (toolbar != null) {
-            toolbar.setNavigationOnClickListener(v -> finish());
+        setTitle(R.string.model_manager_title);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
 
-        listView = findViewById(R.id.list_models);
+        recyclerView = findViewById(R.id.recycler_models);
         emptyView = findViewById(R.id.empty_view);
         progress = findViewById(R.id.progress);
         btnRefresh = findViewById(R.id.btn_refresh);
         btnDeleteAll = findViewById(R.id.btn_delete_all);
-
-        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, new ArrayList<>());
-        listView.setAdapter(adapter);
-
-        listView.setOnItemClickListener((parent, view, position, id) -> confirmDeleteSingle(position));
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        adapter = new ModelAdapter();
+        recyclerView.setAdapter(adapter);
+        try {
+            int outline = MaterialColors.getColor(this, com.google.android.material.R.attr.colorOutline, Color.LTGRAY);
+            MaterialDividerItemDecoration deco = new MaterialDividerItemDecoration(this, LinearLayoutManager.VERTICAL);
+            deco.setDividerColor(outline);
+            recyclerView.addItemDecoration(deco);
+        } catch (Throwable ignored) {}
 
         btnRefresh.setOnClickListener(v -> refresh());
         btnDeleteAll.setOnClickListener(v -> confirmDeleteAll());
 
         refresh();
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            finish();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
@@ -96,18 +112,10 @@ public class ModelManagerActivity extends AppCompatActivity {
     }
 
     private void applyModelsToList() {
-        List<String> items = new ArrayList<>();
-        for (TranslateRemoteModel m : models) {
-            String code = m.getLanguage();
-            String name = displayNameFromMlCode(code);
-            String lastUsed = formatLastUsed(ModelInfoUtil.getLastUsed(this, code));
-            items.add(name + " (" + code + ") · " + lastUsed);
-        }
-        adapter.clear();
-        adapter.addAll(items);
         adapter.notifyDataSetChanged();
-        emptyView.setVisibility(items.isEmpty() ? View.VISIBLE : View.GONE);
-        listView.setVisibility(items.isEmpty() ? View.GONE : View.VISIBLE);
+        boolean empty = models.isEmpty();
+        emptyView.setVisibility(empty ? View.VISIBLE : View.GONE);
+        recyclerView.setVisibility(empty ? View.GONE : View.VISIBLE);
     }
 
     private String formatLastUsed(long ts) {
@@ -186,5 +194,42 @@ public class ModelManagerActivity extends AppCompatActivity {
                 refresh();
             });
         });
+    }
+
+    private class ModelAdapter extends RecyclerView.Adapter<ModelAdapter.VH> {
+        @Override
+        public VH onCreateViewHolder(android.view.ViewGroup parent, int viewType) {
+            android.view.LayoutInflater inflater = android.view.LayoutInflater.from(parent.getContext());
+            android.view.View v = inflater.inflate(R.layout.item_model_row, parent, false);
+            return new VH(v);
+        }
+
+        @Override
+        public void onBindViewHolder(VH holder, int position) {
+            TranslateRemoteModel m = models.get(position);
+            String code = m.getLanguage();
+            String name = displayNameFromMlCode(code);
+            String lastUsed = formatLastUsed(ModelInfoUtil.getLastUsed(ModelManagerActivity.this, code));
+            holder.title.setText(name + " (" + code + ")");
+            holder.subtitle.setText(lastUsed);
+        }
+
+        @Override
+        public int getItemCount() {
+            return models.size();
+        }
+
+        class VH extends RecyclerView.ViewHolder {
+            final android.widget.ImageView icon;
+            final android.widget.TextView title;
+            final android.widget.TextView subtitle;
+            VH(View itemView) {
+                super(itemView);
+                icon = itemView.findViewById(R.id.icon);
+                title = itemView.findViewById(R.id.title);
+                subtitle = itemView.findViewById(R.id.subtitle);
+                itemView.setOnClickListener(v -> confirmDeleteSingle(getBindingAdapterPosition()));
+            }
+        }
     }
 }

@@ -16,3 +16,4 @@ local.properties
 .idea
 keystore.properties
 app/keystore.jks
+app/release

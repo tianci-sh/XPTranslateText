@@ -7,16 +7,15 @@ import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Process;
-import android.view.View;
 import android.widget.ArrayAdapter;
-import android.widget.Spinner;
-import android.widget.Switch;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.materialswitch.MaterialSwitch;
+import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.mlkit.nl.translate.TranslateLanguage;
 
 import java.util.ArrayList;
@@ -34,21 +33,25 @@ import java.util.Set;
  */
 public class HomeActivity extends AppCompatActivity {
 
-    private Spinner sourceSpinner;
-    private Spinner targetSpinner;
-    private Switch serverSwitch;
+    private MaterialAutoCompleteTextView sourceDropdown;
+    private MaterialAutoCompleteTextView targetDropdown;
+    private MaterialSwitch serverSwitch;
     private TextView statusText;
 
     private SharedPreferences prefs;
 
     private final List<String> sourceValues = new ArrayList<>();
     private final List<String> targetValues = new ArrayList<>();
+    private final List<String> srcEntries = new ArrayList<>();
+    private final List<String> dstEntries = new ArrayList<>();
 
     @SuppressLint("WorldReadableFiles")
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
+
+        setTitle(R.string.home_title);
 
         boolean moduleEnabled = isXposedModuleEnabled();
         if (moduleEnabled) {
@@ -68,15 +71,15 @@ public class HomeActivity extends AppCompatActivity {
             return;
         }
 
-        sourceSpinner = findViewById(R.id.spinner_source_lang);
-        targetSpinner = findViewById(R.id.spinner_target_lang);
+        sourceDropdown = findViewById(R.id.spinner_source_lang);
+        targetDropdown = findViewById(R.id.spinner_target_lang);
         serverSwitch = findViewById(R.id.switch_server);
         statusText = findViewById(R.id.text_status);
         findViewById(R.id.btn_model_manager).setOnClickListener(v -> {
             startActivity(new Intent(this, ModelManagerActivity.class));
         });
 
-        setupLanguageSpinners();
+        setupLanguageDropdowns();
         loadInitialSelections();
 
         serverSwitch.setChecked(LocalTranslationService.isRunning());
@@ -120,11 +123,11 @@ public class HomeActivity extends AppCompatActivity {
         System.exit(0);
     }
 
-    private void setupLanguageSpinners() {
+    private void setupLanguageDropdowns() {
         // 動態建置語言清單：以 ML Kit 支援集合為準，顯示本地化名稱 + 語言標籤
         // 來源：含 auto；目標：不含 auto
-        List<String> srcEntries = new ArrayList<>();
-        List<String> dstEntries = new ArrayList<>();
+        srcEntries.clear();
+        dstEntries.clear();
 
         // 先加入 auto 到來源
         sourceValues.clear();
@@ -165,38 +168,40 @@ public class HomeActivity extends AppCompatActivity {
         }
 
         ArrayAdapter<String> srcAdapter = new ArrayAdapter<>(
-                this, android.R.layout.simple_spinner_item, srcEntries
+                this, android.R.layout.simple_list_item_1, srcEntries
         );
-        srcAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        sourceSpinner.setAdapter(srcAdapter);
+        sourceDropdown.setAdapter(srcAdapter);
 
         ArrayAdapter<String> dstAdapter = new ArrayAdapter<>(
-                this, android.R.layout.simple_spinner_item, dstEntries
+                this, android.R.layout.simple_list_item_1, dstEntries
         );
-        dstAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        targetSpinner.setAdapter(dstAdapter);
+        targetDropdown.setAdapter(dstAdapter);
 
-        sourceSpinner.setOnItemSelectedListener(new SimpleOnItemSelectedListener(() -> {
-            int pos = sourceSpinner.getSelectedItemPosition();
-            if (pos >= 0 && pos < sourceValues.size()) {
-                prefs.edit().putString("source_lang", sourceValues.get(pos)).apply();
+        sourceDropdown.setOnItemClickListener((parent, view, position, id) -> {
+            if (position >= 0 && position < sourceValues.size()) {
+                prefs.edit().putString("source_lang", sourceValues.get(position)).apply();
             }
-        }));
+        });
 
-        targetSpinner.setOnItemSelectedListener(new SimpleOnItemSelectedListener(() -> {
-            int pos = targetSpinner.getSelectedItemPosition();
-            if (pos >= 0 && pos < targetValues.size()) {
-                prefs.edit().putString("target_lang", targetValues.get(pos)).apply();
+        targetDropdown.setOnItemClickListener((parent, view, position, id) -> {
+            if (position >= 0 && position < targetValues.size()) {
+                prefs.edit().putString("target_lang", targetValues.get(position)).apply();
             }
-        }));
+        });
     }
 
     private void loadInitialSelections() {
         String src = prefs.getString("source_lang", "auto");
         String dst = prefs.getString("target_lang", "zh-TW");
 
-        sourceSpinner.setSelection(indexOf(sourceValues.toArray(new String[0]), src));
-        targetSpinner.setSelection(indexOf(targetValues.toArray(new String[0]), dst));
+        int srcIndex = indexOf(sourceValues.toArray(new String[0]), src);
+        int dstIndex = indexOf(targetValues.toArray(new String[0]), dst);
+        if (srcIndex >= 0 && srcIndex < srcEntries.size()) {
+            sourceDropdown.setText(srcEntries.get(srcIndex), false);
+        }
+        if (dstIndex >= 0 && dstIndex < dstEntries.size()) {
+            targetDropdown.setText(dstEntries.get(dstIndex), false);
+        }
     }
 
     private int indexOf(String[] arr, String target) {
@@ -255,23 +260,5 @@ public class HomeActivity extends AppCompatActivity {
     private void updateStatusText(boolean running) {
         statusText.setText(running ? getString(R.string.server_running, LocalTranslationService.PORT)
                 : getString(R.string.server_stopped));
-    }
-
-    // 簡化版 OnItemSelectedListener：只有在選擇變動時觸發 runnable
-    private static class SimpleOnItemSelectedListener implements android.widget.AdapterView.OnItemSelectedListener {
-        private final Runnable onSelected;
-
-        SimpleOnItemSelectedListener(Runnable onSelected) {
-            this.onSelected = onSelected;
-        }
-
-        @Override
-        public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
-            onSelected.run();
-        }
-
-        @Override
-        public void onNothingSelected(android.widget.AdapterView<?> parent) {
-        }
     }
 }
