@@ -72,26 +72,38 @@ public class MultiSegmentTranslateTask {
             doTranslateSegments(segments, srcLang, tgtLang);
 
             new Handler(Looper.getMainLooper()).post(() -> {
-                // 確認 TextView 的 Tag 是否還是同一個 translationId
-                Method setTagMethod = XposedHelpers.findMethodExactIfExists(param.thisObject.getClass(), "getTag", Object.class);
-                if (setTagMethod != null) {
-                    Object tagObj = XposedHelpers.callMethod(param.thisObject, "getTag");
-                    if (!(tagObj instanceof Integer)) {
-                        log("Tag mismatch => skip.");
+                // 優先以 AdditionalInstanceField 驗證是否仍為同一個目標
+                try {
+                    Object storedId = XposedHelpers.getAdditionalInstanceField(param.thisObject, HookMain.TRANSLATION_ID_KEY);
+                    if (storedId instanceof Integer) {
+                        int currentId = (Integer) storedId;
+                        if (currentId == translationId) {
+                            HookMain.applyTranslatedSegments(param, segments);
+                        } else {
+                            log("MultiSegmentTranslateTask => expired by additional field. currentId=" + currentId + ", myId=" + translationId);
+                        }
                         return;
                     }
-                    int currentTag = (Integer) tagObj;
-                    if (currentTag == translationId) {
-                        // 還是同一個 => 套用翻譯後結果
-                        HookMain.applyTranslatedSegments(param, segments);
-                    } else {
-                        log("MultiSegmentTranslateTask => expired. currentTag=" + currentTag
-                                + ", myId=" + translationId);
-                    }
-                } else {
-                    //doesn't support setTag
-                    HookMain.applyTranslatedSegments(param, segments);
+                } catch (Throwable ignored) {
                 }
+
+                // 退而檢查 getTag()（若目標物件為 View）
+                try {
+                    Method getTag = XposedHelpers.findMethodExactIfExists(param.thisObject.getClass(), "getTag");
+                    if (getTag != null) {
+                        Object tagObj = XposedHelpers.callMethod(param.thisObject, "getTag");
+                        if (tagObj instanceof Integer && ((Integer) tagObj) == translationId) {
+                            HookMain.applyTranslatedSegments(param, segments);
+                        } else {
+                            log("Tag mismatch => skip. tag=" + tagObj + ", myId=" + translationId);
+                        }
+                        return;
+                    }
+                } catch (Throwable ignored) {
+                }
+
+                // 無法驗證（非 View 或無標記能力），保守地直接套用
+                HookMain.applyTranslatedSegments(param, segments);
             });
         });
     }

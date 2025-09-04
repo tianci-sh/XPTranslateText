@@ -37,6 +37,7 @@ public class HookMain implements IXposedHookLoadPackage {
     private static boolean isTranslating = false;
 
     private static final AtomicInteger atomicIdGenerator = new AtomicInteger(1);
+    public static final String TRANSLATION_ID_KEY = "xp_translate_text:translationId";
 
     @Override
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
@@ -63,8 +64,8 @@ public class HookMain implements IXposedHookLoadPackage {
         final String finalSourceLang = sourceLang;
         final String finalTargetLang = targetLang;
 
-        hookAllCustomSetTextClasss(lpparam, finalSourceLang, finalTargetLang);
         hookTextView(lpparam, finalSourceLang, finalTargetLang);
+        hookAllCustomSetTextClasss(lpparam, finalSourceLang, finalTargetLang);
         hookWebView(lpparam, finalSourceLang, finalTargetLang);
 
         XposedHelpers.findAndHookMethod(
@@ -163,8 +164,8 @@ public class HookMain implements IXposedHookLoadPackage {
                         }
 
                         int translationId = atomicIdGenerator.getAndIncrement();
-                        TextView tv = (TextView) param.thisObject;
-                        tv.setTag(translationId);
+                        Object target = param.thisObject;
+                        markTranslationId(target, translationId);
 
                         List<Segment> segments;
                         if (originalText instanceof Spanned) {
@@ -243,10 +244,7 @@ public class HookMain implements IXposedHookLoadPackage {
                                         XposedBridge.log(String.format("[ translate ] %s string => %s", param.thisObject.getClass(), originalText));
 
                                         int translationId = atomicIdGenerator.getAndIncrement();
-                                        Method setTagMethod = XposedHelpers.findMethodExactIfExists(param.thisObject.getClass(), "setTag", Object.class);
-                                        if (setTagMethod != null) {
-                                            XposedHelpers.callMethod(param.thisObject, "setTag", translationId);
-                                        }
+                                        markTranslationId(param.thisObject, translationId);
 
 
                                         List<Segment> segments;
@@ -303,6 +301,20 @@ public class HookMain implements IXposedHookLoadPackage {
             XposedBridge.log("Error applying translated segments: " + t.getMessage());
         } finally {
             isTranslating = false;
+        }
+    }
+
+    private static void markTranslationId(Object target, int translationId) {
+        try {
+            XposedHelpers.setAdditionalInstanceField(target, TRANSLATION_ID_KEY, translationId);
+        } catch (Throwable ignored) {
+        }
+        try {
+            Method setTag = XposedHelpers.findMethodExactIfExists(target.getClass(), "setTag", Object.class);
+            if (setTag != null) {
+                XposedHelpers.callMethod(target, "setTag", translationId);
+            }
+        } catch (Throwable ignored) {
         }
     }
 
