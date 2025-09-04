@@ -1,6 +1,11 @@
 # Xposed Translate Text
 
-**Auto-translate app text prioritizing Local Cache and on-device ML Kit (local server), then [Gemini API](https://ai.google.dev/gemini-api/docs/pricing?hl=zh-tw#gemini-2.0-flash-lite), with fallback to the [Free Google API](https://github.com/ssut/py-googletrans/issues/268).**
+**Auto-translate app text prioritizing Local Cache and on-device [ML Kit (local server)](https://developers.google.com/ml-kit/language/translation), then [Gemini API](https://ai.google.dev/gemini-api/docs/pricing?hl=zh-tw#gemini-2.0-flash-lite), with fallback to the [Free Google API](https://github.com/ssut/py-googletrans/issues/268).**
+
+## ✨ What's New in 2.0
+
+- Prioritize on-device translation via a built-in local server using **Google ML Kit**.
+- Added translation support for **android.text.StaticLayout$Builder** to reduce UI jank by replacing text synchronously when possible.
 
 ## 📥 Download
 
@@ -21,11 +26,6 @@
 5. Kill your app and restart it.
 
 After restart, the selected apps should display translated text automatically.
-
-## ✨ What's New in 2.0
-
-- Prioritize on-device translation via a built-in local server using **Google ML Kit**.
-- Added translation support for **android.text.StaticLayout$Builder** to reduce UI jank by replacing text synchronously when possible.
 
 ## 🛠️ Hook Methods & Translation Workflow
 - **android.widget.TextView & Custom Components:**
