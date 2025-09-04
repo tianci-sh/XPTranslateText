@@ -1,0 +1,31 @@
+<resources>
+    <string name="app_name">XPTranslateText</string>
+    <string name="home_title">Служба локального перевода</string>
+    <string name="server_switch">Запустить локальный сервер перевода</string>
+    <string name="server_running">Работает: http://127.0.0.1:%1$d</string>
+    <string name="server_stopped">Не запущен</string>
+    <string name="lang_section_title">Настройки языка</string>
+    <string name="source_lang">Исходный язык</string>
+    <string name="target_lang">Целевой язык</string>
+    <string name="server_hint">Подсказка: при первом использовании ML Kit может загрузить модели (требуется сеть).</string>
+    <string name="model_section_title">Управление моделями</string>
+    <string name="manage_models">Управлять загруженными моделями</string>
+    <string name="model_manager_title">Менеджер моделей ML Kit</string>
+    <string name="refresh_models">Обновить</string>
+    <string name="delete_all_models">Удалить все</string>
+    <string name="empty_models">Нет загруженных моделей</string>
+    <string name="confirm_delete_title">Подтвердить удаление</string>
+    <string name="confirm_delete_single">Удалить эту модель (%1$s)?</string>
+    <string name="confirm_delete_all">Удалить все загруженные модели?</string>
+    <string name="deleting">Удаление…</string>
+    <string name="delete_success">Удалено</string>
+    <string name="delete_failed">Не удалось удалить: %1$s</string>
+    <string name="last_used_label">Последнее использование: %1$s</string>
+    <string name="last_used_never">—</string>
+    <string name="translation_first_time_tip">Подсказка: при первом переводе модель загружается автоматически и может ненадолго заблокировать интерфейс. Если результат выглядит неполным, вероятно, перевод ещё выполняется — подождите немного или обновите.</string>
+    <!-- Language dropdown labels -->
+    <string name="label_auto_detect">Автоопределение (auto)</string>
+    <string name="label_lang_zh_tw">Китайский (традиционный)</string>
+    <string name="label_lang_zh_cn">Китайский (упрощённый)</string>
+</resources>
+

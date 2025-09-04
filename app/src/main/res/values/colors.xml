@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Legacy M2 palette (kept for compatibility) -->
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>
@@ -7,4 +8,24 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Brand palette (darker, for Material 3) -->
+    <color name="brand_primary">#512DA8</color> <!-- Deep Purple 700 -->
+    <color name="brand_on_primary">#FFFFFFFF</color>
+    <color name="brand_secondary">#00796B</color> <!-- Teal 700 -->
+    <color name="brand_on_secondary">#FFFFFFFF</color>
+
+    <!-- Monochrome palette (Light) retained for compatibility -->
+    <color name="mono_primary">#121212</color>
+    <color name="mono_primary_variant">#2B2B2B</color>
+    <color name="mono_on_primary">#FFFFFF</color>
+
+    <color name="mono_secondary">#3C3C3C</color>
+    <color name="mono_secondary_variant">#565656</color>
+    <color name="mono_on_secondary">#FFFFFF</color>
+
+    <color name="mono_background">#FFFFFF</color>
+    <color name="mono_surface">#FFFFFF</color>
+    <color name="mono_on_surface">#121212</color>
+    <color name="mono_outline">#E0E0E0</color>
 </resources>

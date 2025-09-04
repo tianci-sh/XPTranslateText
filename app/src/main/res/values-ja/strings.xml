@@ -1,0 +1,31 @@
+<resources>
+    <string name="app_name">XPTranslateText</string>
+    <string name="home_title">ローカル翻訳サービス</string>
+    <string name="server_switch">ローカル翻訳サーバーを起動</string>
+    <string name="server_running">稼働中: http://127.0.0.1:%1$d</string>
+    <string name="server_stopped">停止中</string>
+    <string name="lang_section_title">言語設定</string>
+    <string name="source_lang">入力言語</string>
+    <string name="target_lang">出力言語</string>
+    <string name="server_hint">ヒント: 初回は ML Kit がモデルをダウンロードする場合があります（ネットワークが必要）。</string>
+    <string name="model_section_title">モデル管理</string>ㄎ
+    <string name="manage_models">ダウンロード済みモデルを管理</string>
+    <string name="model_manager_title">ML Kit モデルマネージャー</string>
+    <string name="refresh_models">更新</string>
+    <string name="delete_all_models">すべて削除</string>
+    <string name="empty_models">ダウンロード済みモデルはありません</string>
+    <string name="confirm_delete_title">削除の確認</string>
+    <string name="confirm_delete_single">このモデル（%1$s）を削除しますか？</string>
+    <string name="confirm_delete_all">ダウンロード済みモデルをすべて削除しますか？</string>
+    <string name="deleting">削除中…</string>
+    <string name="delete_success">削除しました</string>
+    <string name="delete_failed">削除に失敗しました: %1$s</string>
+    <string name="last_used_label">最終使用: %1$s</string>
+    <string name="last_used_never">—</string>
+    <string name="translation_first_time_tip">ヒント: 初回の翻訳時にモデルが自動的にダウンロードされ、UI が一時的に固まる場合があります。結果が不完全に見える場合は、翻訳が追いついていない可能性があるため、少し待つか再読み込みしてください。</string>
+    <!-- Language dropdown labels -->
+    <string name="label_auto_detect">自動検出 (auto)</string>
+    <string name="label_lang_zh_tw">中国語（繁体字）</string>
+    <string name="label_lang_zh_cn">中国語（簡体字）</string>
+</resources>
+

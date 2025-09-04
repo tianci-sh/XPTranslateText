@@ -1,0 +1,30 @@
+<resources>
+    <string name="app_name">XPTranslateText</string>
+    <string name="home_title">Local Translation Service</string>
+    <string name="server_switch">Start Local Translation Server</string>
+    <string name="server_running">Running: http://127.0.0.1:%1$d</string>
+    <string name="server_stopped">Not running</string>
+    <string name="lang_section_title">Language Settings</string>
+    <string name="source_lang">Source language</string>
+    <string name="target_lang">Target language</string>
+    <string name="server_hint">Hint: ML Kit may download models on first use (requires network).</string>
+    <string name="translation_first_time_tip">Hint: On first translation the model downloads automatically and may briefly block the UI. If the result looks incomplete, it is likely still catching up—please wait a moment or refresh.</string>
+    <string name="model_section_title">Model Management</string>
+    <string name="manage_models">Manage downloaded models</string>
+    <string name="model_manager_title">ML Kit Model Manager</string>
+    <string name="refresh_models">Refresh</string>
+    <string name="delete_all_models">Delete all</string>
+    <string name="empty_models">No downloaded models</string>
+    <string name="confirm_delete_title">Confirm Delete</string>
+    <string name="confirm_delete_single">Delete this model (%1$s)?</string>
+    <string name="confirm_delete_all">Delete all downloaded models?</string>
+    <string name="deleting">Deleting…</string>
+    <string name="delete_success">Deleted</string>
+    <string name="delete_failed">Delete failed: %1$s</string>
+    <string name="last_used_label">Last used: %1$s</string>
+    <string name="last_used_never">—</string>
+    <!-- Language dropdown labels -->
+    <string name="label_auto_detect">Auto Detect (auto)</string>
+    <string name="label_lang_zh_tw">Chinese (Traditional)</string>
+    <string name="label_lang_zh_cn">Chinese (Simplified)</string>
+</resources>

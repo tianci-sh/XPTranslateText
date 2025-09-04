@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand palette overrides for Night (darker) -->
+    <color name="brand_primary">#4527A0</color> <!-- Deep Purple 800 -->
+    <color name="brand_on_primary">#FFFFFFFF</color>
+    <color name="brand_secondary">#00695C</color> <!-- Teal 800 -->
+    <color name="brand_on_secondary">#FFFFFFFF</color>
+
+    <!-- Monochrome palette (Dark) -->
+    <color name="mono_primary">#EDEDED</color>
+    <color name="mono_primary_variant">#D6D6D6</color>
+    <color name="mono_on_primary">#121212</color>
+
+    <color name="mono_secondary">#CFCFCF</color>
+    <color name="mono_secondary_variant">#BDBDBD</color>
+    <color name="mono_on_secondary">#121212</color>
+
+    <!-- Lightened dark palette for more comfortable Night mode -->
+    <color name="mono_background">#1A1A1A</color>
+    <color name="mono_surface">#1F1F1F</color>
+    <color name="mono_on_surface">#EDEDED</color>
+    <color name="mono_outline">#3E3E3E</color>
+
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>

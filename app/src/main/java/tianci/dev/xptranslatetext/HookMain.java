@@ -5,8 +5,8 @@ import android.content.Context;
 import android.os.Bundle;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
-import android.widget.TextView;
 import android.webkit.WebView;
+import android.widget.TextView;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -21,18 +21,28 @@ import java.util.concurrent.atomic.AtomicInteger;
 import dalvik.system.DexFile;
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XC_MethodReplacement;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 import de.robv.android.xposed.XSharedPreferences;
 import tianci.dev.xptranslatetext.rules.Telegram;
+import tianci.dev.xptranslatetext.translate.MultiSegmentTranslateTask;
+import tianci.dev.xptranslatetext.translate.Segment;
+import tianci.dev.xptranslatetext.translate.SpanSpec;
+import tianci.dev.xptranslatetext.translate.WebViewTranslationBridge;
 
+/**
+ * Xposed entry point. Hooks TextView, StaticLayout, WebView, and custom setText methods
+ * to inject a translation flow while preserving spans and minimizing UI jank.
+ */
 public class HookMain implements IXposedHookLoadPackage {
 
     private static boolean isTranslating = false;
 
     private static final AtomicInteger atomicIdGenerator = new AtomicInteger(1);
+    public static final String TRANSLATION_ID_KEY = "xp_translate_text:translationId";
 
     @Override
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
@@ -59,8 +69,9 @@ public class HookMain implements IXposedHookLoadPackage {
         final String finalSourceLang = sourceLang;
         final String finalTargetLang = targetLang;
 
-        hookAllCustomSetTextClasss(lpparam, finalSourceLang, finalTargetLang);
         hookTextView(lpparam, finalSourceLang, finalTargetLang);
+        hookStaticLayout(lpparam, finalSourceLang, finalTargetLang);
+        hookAllCustomSetTextClasss(lpparam, finalSourceLang, finalTargetLang);
         hookWebView(lpparam, finalSourceLang, finalTargetLang);
 
         XposedHelpers.findAndHookMethod(
@@ -79,6 +90,126 @@ public class HookMain implements IXposedHookLoadPackage {
                     }
                 }
         );
+    }
+
+    /**
+     * Replace StaticLayout.Builder.build():
+     * - Try synchronous replacement from memory/DB (no network, no blocking beyond local DB)
+     * - If unresolved, try quick local-service translation (background I/O + short await on UI)
+     * - If still unresolved, prefetch async and return original layout
+     */
+    private void hookStaticLayout(XC_LoadPackage.LoadPackageParam lpparam, String finalSourceLang, String finalTargetLang) {
+        try {
+            XposedHelpers.findAndHookMethod(
+                    "android.text.StaticLayout$Builder",
+                    lpparam.classLoader,
+                    "build",
+                    new XC_MethodReplacement() {
+                        @Override
+                        protected Object replaceHookedMethod(MethodHookParam param) throws Throwable { // Declare throws Throwable to keep signature compatible.
+                            Object builder = param.thisObject;
+                            if (builder == null) {
+                                // Call through if something is off
+                                return XposedBridge.invokeOriginalMethod(param.method, param.thisObject, param.args);
+                            }
+
+                            try {
+                                // Read text from builder
+                                CharSequence text = null;
+                                try {
+                                    text = (CharSequence) XposedHelpers.getObjectField(builder, "mText");
+                                } catch (Throwable ignore) {
+                                    try {
+                                        text = (CharSequence) XposedHelpers.getObjectField(builder, "mSource");
+                                    } catch (Throwable ignore2) {
+                                        text = null;
+                                    }
+                                }
+                                if (text == null || text.length() == 0) {
+                                    return XposedBridge.invokeOriginalMethod(param.method, param.thisObject, param.args);
+                                }
+
+                                // Read start/end
+                                int start;
+                                int end;
+                                try {
+                                    start = XposedHelpers.getIntField(builder, "mStart");
+                                    end = XposedHelpers.getIntField(builder, "mEnd");
+                                } catch (Throwable ignore) {
+                                    start = 0;
+                                    end = text.length();
+                                }
+                                if (start < 0) start = 0;
+                                if (end > text.length()) end = text.length();
+                                if (start >= end) {
+                                    return XposedBridge.invokeOriginalMethod(param.method, param.thisObject, param.args);
+                                }
+
+                                // Skip rule
+                                if (isTranslationSkippedForClass(lpparam.packageName, builder.getClass().getName())) {
+                                    return XposedBridge.invokeOriginalMethod(param.method, param.thisObject, param.args);
+                                }
+
+                                CharSequence piece = text.subSequence(start, end);
+
+                                // Build segments (preserve spans)
+                                List<Segment> segments;
+                                if (piece instanceof Spanned) {
+                                    segments = parseAllSegments((Spanned) piece);
+                                } else {
+                                    segments = new ArrayList<>();
+                                    segments.add(new Segment(0, piece.length(), piece.toString()));
+                                }
+
+                                // 1) memory/DB sync fast-path
+                                boolean allResolved = MultiSegmentTranslateTask.fillSegmentsFromCacheOrDbOrNoNeed(
+                                        segments, finalSourceLang, finalTargetLang);
+
+                                // 2) quick local-service sync (short wait) if not all resolved
+                                if (!allResolved) {
+                                    boolean nowResolved = MultiSegmentTranslateTask.quickTranslateUnresolvedSegmentsViaLocal(
+                                            segments, finalSourceLang, finalTargetLang, 1000 /*ms*/);
+                                    if (nowResolved) {
+                                        allResolved = true;
+                                    }
+                                }
+
+                                if (allResolved) {
+                                    // Replace builder text with translated spanned and build now
+                                    CharSequence newSpanned = buildSpannedFromSegments(segments);
+
+                                    try {
+                                        XposedHelpers.setObjectField(builder, "mText", newSpanned);
+                                    } catch (Throwable ignore) {
+                                        try {
+                                            XposedHelpers.setObjectField(builder, "mSource", newSpanned);
+                                        } catch (Throwable ignore2) {
+                                            // Cannot write back; call through
+                                            return XposedBridge.invokeOriginalMethod(param.method, param.thisObject, param.args);
+                                        }
+                                    }
+                                    try {
+                                        XposedHelpers.setIntField(builder, "mStart", 0);
+                                        XposedHelpers.setIntField(builder, "mEnd", newSpanned.length());
+                                    } catch (Throwable ignore) {}
+
+                                    XposedBridge.log("[StaticLayout.Builder] applied translated text synchronously.");
+                                    return XposedBridge.invokeOriginalMethod(param.method, param.thisObject, param.args);
+                                } else {
+                                    // 3) prefetch async for next time
+                                    MultiSegmentTranslateTask.prefetchSegmentsAsync(segments, finalSourceLang, finalTargetLang);
+                                    return XposedBridge.invokeOriginalMethod(param.method, param.thisObject, param.args);
+                                }
+                            } catch (Throwable t) {
+                                XposedBridge.log("[StaticLayout.Builder.build] replacement error => " + t.getMessage());
+                                return XposedBridge.invokeOriginalMethod(param.method, param.thisObject, param.args);
+                            }
+                        }
+                    }
+            );
+        } catch (Throwable t) {
+            XposedBridge.log("hook StaticLayout.Builder.build failed => " + t.getMessage());
+        }
     }
 
     private void hookWebView(XC_LoadPackage.LoadPackageParam lpparam, String finalSourceLang, String finalTargetLang) {
@@ -121,7 +252,7 @@ public class HookMain implements IXposedHookLoadPackage {
 
                         XposedBridge.log("onPageFinished => " + url);
 
-                        String jsCode = buildExtractTextJS(finalSourceLang,finalTargetLang);
+                        String jsCode = buildExtractTextJS(finalSourceLang, finalTargetLang);
 
                         webView.post(() -> {
                             webView.evaluateJavascript(jsCode, null);
@@ -151,16 +282,13 @@ public class HookMain implements IXposedHookLoadPackage {
 
                         XposedBridge.log(String.format("[ translate ] %s string => %s", param.thisObject.getClass(), originalText));
 
-                        //Debugging: Check if calling invokeOriginalMethod causes text to disappear
-                        //XposedBridge.log("TextView Class => " + param.thisObject.getClass().getName());
-
                         if (isTranslationSkippedForClass(lpparam.packageName, param.thisObject.getClass().getName())) {
                             return;
                         }
 
                         int translationId = atomicIdGenerator.getAndIncrement();
-                        TextView tv = (TextView) param.thisObject;
-                        tv.setTag(translationId);
+                        Object target = param.thisObject;
+                        markTranslationId(target, translationId);
 
                         List<Segment> segments;
                         if (originalText instanceof Spanned) {
@@ -170,6 +298,7 @@ public class HookMain implements IXposedHookLoadPackage {
                             segments.add(new Segment(0, originalText.length(), originalText.toString()));
                         }
 
+                        // async translate + second call to original setText later
                         MultiSegmentTranslateTask.translateSegmentsAsync(
                                 param,
                                 translationId,
@@ -239,11 +368,7 @@ public class HookMain implements IXposedHookLoadPackage {
                                         XposedBridge.log(String.format("[ translate ] %s string => %s", param.thisObject.getClass(), originalText));
 
                                         int translationId = atomicIdGenerator.getAndIncrement();
-                                        Method setTagMethod = XposedHelpers.findMethodExactIfExists(param.thisObject.getClass(), "setTag", Object.class);
-                                        if (setTagMethod != null) {
-                                            XposedHelpers.callMethod(param.thisObject, "setTag", translationId);
-                                        }
-
+                                        markTranslationId(param.thisObject, translationId);
 
                                         List<Segment> segments;
                                         if (originalText instanceof Spanned) {
@@ -287,18 +412,39 @@ public class HookMain implements IXposedHookLoadPackage {
         try {
             isTranslating = true;
 
-            // 重建新的 Spannable
+            // Rebuild new spanned from segments
             CharSequence newSpanned = buildSpannedFromSegments(segments);
+            XposedBridge.log("( result ) => " + newSpanned);
 
-            // 套回原始方法參數
-            param.args[0] = newSpanned;
-//            param.args[1] = TextView.BufferType.SPANNABLE;
-
-            XposedBridge.invokeOriginalMethod(param.method, param.thisObject, param.args);
+            // Only apply for setText-like methods that take arguments and update View state
+            if (param.args != null && param.args.length >= 1) {
+                // e.g. TextView.setText(...) or custom setText(CharSequence)
+                param.args[0] = newSpanned; // apply translated text
+                XposedBridge.invokeOriginalMethod(param.method, param.thisObject, param.args);
+            } else {
+                // For StaticLayout.Builder.build(): do NOTHING here.
+                // Reason:
+                // - The original build() already returned. Calling it again here cannot affect the caller.
+                // - We handle StaticLayout replacement in hookStaticLayout() with XC_MethodReplacement.
+            }
         } catch (Throwable t) {
             XposedBridge.log("Error applying translated segments: " + t.getMessage());
         } finally {
             isTranslating = false;
+        }
+    }
+
+    private static void markTranslationId(Object target, int translationId) {
+        try {
+            XposedHelpers.setAdditionalInstanceField(target, TRANSLATION_ID_KEY, translationId);
+        } catch (Throwable ignored) {
+        }
+        try {
+            Method setTag = XposedHelpers.findMethodExactIfExists(target.getClass(), "setTag", Object.class);
+            if (setTag != null) {
+                XposedHelpers.callMethod(target, "setTag", translationId);
+            }
+        } catch (Throwable ignored) {
         }
     }
 
@@ -309,10 +455,10 @@ public class HookMain implements IXposedHookLoadPackage {
             return segments;
         }
 
-        // 1) 取出所有 span
+        // 1) collect all spans
         Object[] allSpans = spanned.getSpans(0, textLen, Object.class);
 
-        // 2) 收集所有 "邊界"(start/end), 一併加上 0, textLen
+        // 2) gather boundaries and add 0, textLen
         Set<Integer> boundarySet = new HashSet<>();
         boundarySet.add(0);
         boundarySet.add(textLen);
@@ -324,11 +470,11 @@ public class HookMain implements IXposedHookLoadPackage {
             boundarySet.add(en);
         }
 
-        // 3) 排序
+        // 3) sort boundaries
         List<Integer> boundaries = new ArrayList<>(boundarySet);
         Collections.sort(boundaries);
 
-        // 4) 依序區間 [i, i+1) 建立 segment
+        // 4) build segments by [i, i+1)
         for (int i = 0; i < boundaries.size() - 1; i++) {
             int segStart = boundaries.get(i);
             int segEnd = boundaries.get(i + 1);
@@ -339,7 +485,7 @@ public class HookMain implements IXposedHookLoadPackage {
             CharSequence sub = spanned.subSequence(segStart, segEnd);
             Segment seg = new Segment(segStart, segEnd, sub.toString());
 
-            // 找所有與該區間交集的 span
+            // find all spans intersect with [segStart, segEnd)
             for (Object span : allSpans) {
                 int spanStart = spanned.getSpanStart(span);
                 int spanEnd = spanned.getSpanEnd(span);
@@ -349,7 +495,6 @@ public class HookMain implements IXposedHookLoadPackage {
                 int intersectEnd = Math.min(spanEnd, segEnd);
 
                 if (intersectStart < intersectEnd) {
-                    // 與本 segment 有重疊
                     int relativeStart = intersectStart - segStart;
                     int relativeEnd = intersectEnd - segStart;
                     seg.spans.add(new SpanSpec(span, relativeStart, relativeEnd, flags));
@@ -372,23 +517,14 @@ public class HookMain implements IXposedHookLoadPackage {
             ssb.append(piece);
 
             int segEnd = ssb.length();
-            int segLen = segEnd - segStart;
 
-            // 把原本 segment 裏的 spans 套回
+            // re-apply spans
             for (SpanSpec spec : seg.spans) {
                 int startInSsb = segStart + spec.start;
                 int endInSsb = segStart + spec.end;
-
-                if (endInSsb > segEnd) {
-                    endInSsb = segEnd;
-                }
-
-                if (startInSsb < segStart) {
-                    startInSsb = segStart;
-                }
-                if (startInSsb >= endInSsb) {
-                    continue;
-                }
+                if (endInSsb > segEnd) endInSsb = segEnd;
+                if (startInSsb < segStart) startInSsb = segStart;
+                if (startInSsb >= endInSsb) continue;
 
                 ssb.setSpan(spec.span, startInSsb, endInSsb, spec.flags);
             }
