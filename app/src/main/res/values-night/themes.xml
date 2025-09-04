@@ -5,6 +5,13 @@
         <item name="colorOnPrimary">@color/brand_on_primary</item>
         <item name="colorSecondary">@color/brand_secondary</item>
         <item name="colorOnSecondary">@color/brand_on_secondary</item>
+        <!-- Lighten overall dark surfaces/background for better contrast -->
+        <item name="android:colorBackground">@color/mono_background</item>
+        <item name="colorOnBackground">@color/mono_on_surface</item>
+        <item name="colorSurface">@color/mono_surface</item>
+        <item name="colorOnSurface">@color/mono_on_surface</item>
+        <item name="colorSurfaceVariant">@color/mono_secondary</item>
+        <item name="colorOutline">@color/mono_outline</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
