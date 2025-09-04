@@ -15,7 +15,7 @@ android {
 
     defaultConfig {
         applicationId "tianci.dev.xptranslatetext"
-        minSdk 28
+        minSdk 29
         targetSdk 34
         versionCode 2000
         versionName "2.0.0"
