@@ -3,10 +3,12 @@ package tianci.dev.xptranslatetext;
 import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
+import android.text.Editable;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.webkit.WebView;
 import android.widget.TextView;
+import android.widget.EditText;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -36,6 +38,7 @@ import tianci.dev.xptranslatetext.translate.WebViewTranslationBridge;
 /**
  * Xposed entry point. Hooks TextView, StaticLayout, WebView, and custom setText methods
  * to inject a translation flow while preserving spans and minimizing UI jank.
+ * Skips translation for editable content (EditText/Editable) to avoid altering user input.
  */
 public class HookMain implements IXposedHookLoadPackage {
 
@@ -129,6 +132,11 @@ public class HookMain implements IXposedHookLoadPackage {
                                     return XposedBridge.invokeOriginalMethod(param.method, param.thisObject, param.args);
                                 }
 
+                                // Skip translating editable content (e.g., EditText uses Editable/DynamicLayout)
+                                if (text instanceof Editable) {
+                                    return XposedBridge.invokeOriginalMethod(param.method, param.thisObject, param.args);
+                                }
+
                                 // Read start/end
                                 int start;
                                 int end;
@@ -151,6 +159,11 @@ public class HookMain implements IXposedHookLoadPackage {
                                 }
 
                                 CharSequence piece = text.subSequence(start, end);
+
+                                // Also skip if the piece itself is Editable
+                                if (piece instanceof Editable) {
+                                    return XposedBridge.invokeOriginalMethod(param.method, param.thisObject, param.args);
+                                }
 
                                 // Build segments (preserve spans)
                                 List<Segment> segments;
@@ -280,6 +293,21 @@ public class HookMain implements IXposedHookLoadPackage {
                             return;
                         }
 
+                        // Skip translation for editable widgets to avoid altering user input.
+                        try {
+                            if (param.thisObject instanceof EditText) {
+                                return;
+                            }
+                            if (originalText instanceof Editable) {
+                                return;
+                            }
+                            Object bufferType = param.args[1];
+                            if (bufferType == TextView.BufferType.EDITABLE) {
+                                return;
+                            }
+                        } catch (Throwable ignored) {
+                        }
+
                         XposedBridge.log(String.format("[ translate ] %s string => %s", param.thisObject.getClass(), originalText));
 
                         if (isTranslationSkippedForClass(lpparam.packageName, param.thisObject.getClass().getName())) {
@@ -363,6 +391,22 @@ public class HookMain implements IXposedHookLoadPackage {
                                         CharSequence originalText = (CharSequence) param.args[0];
                                         if (originalText == null || originalText.length() == 0) {
                                             return;
+                                        }
+
+                                        // Skip editable content to avoid altering user input.
+                                        try {
+                                            if (originalText instanceof Editable) {
+                                                return;
+                                            }
+                                            // If the target object exposes an isEditable() method and returns true, skip.
+                                            Method isEditable = XposedHelpers.findMethodExactIfExists(param.thisObject.getClass(), "isEditable");
+                                            if (isEditable != null) {
+                                                Object res = XposedHelpers.callMethod(param.thisObject, "isEditable");
+                                                if (res instanceof Boolean && ((Boolean) res)) {
+                                                    return;
+                                                }
+                                            }
+                                        } catch (Throwable ignored) {
                                         }
 
                                         XposedBridge.log(String.format("[ translate ] %s string => %s", param.thisObject.getClass(), originalText));
