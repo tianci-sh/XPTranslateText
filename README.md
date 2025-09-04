@@ -1,6 +1,6 @@
 # Xposed Translate Text
 
-**Auto-translate app text using Local Cache first, then [Gemini API](https://ai.google.dev/gemini-api/docs/pricing?hl=zh-tw#gemini-2.0-flash-lite), with fallback to [Free Google API](https://github.com/ssut/py-googletrans/issues/268)**
+**Auto-translate app text prioritizing Local Cache and on-device ML Kit (local server), then [Gemini API](https://ai.google.dev/gemini-api/docs/pricing?hl=zh-tw#gemini-2.0-flash-lite), with fallback to the [Free Google API](https://github.com/ssut/py-googletrans/issues/268).**
 
 ## 📥 Download
 
@@ -17,21 +17,33 @@
 1. Install the downloaded APK from the link above.
 2. Open the **LSPosed Manager app**, navigate to **Modules**, and enable **XPTranslateText**.
 3. Select the apps you want to translate from the module settings in LSPosed.
-4. Kill your app and restart it.
+4. Open the XPTranslateText app, enable the "Local Translation Server" switch, and choose your source/target languages.
+5. Kill your app and restart it.
 
 After restart, the selected apps should display translated text automatically.
+
+## ✨ What's New in 2.0
+
+- Prioritize on-device translation via a built-in local server using **Google ML Kit**.
+- Added translation support for **android.text.StaticLayout$Builder** to reduce UI jank by replacing text synchronously when possible.
 
 ## 🛠️ Hook Methods & Translation Workflow
 - **android.widget.TextView & Custom Components:**
   - Automatically translates text set via the `setText()` method.
-  - Translation is prioritized using:
-    1. **Local Translation Cache**: Speeds up translation by caching previously translated texts locally.
-    2. **Gemini API (gemini-2.0-flash-lite)**: Uses Google's Gemini API for translations first, with a fallback to the Free Google API when needed.
-    3. **Free Google API**
+  - Translation pipeline:
+    1. **Local Translation Cache** (memory + SQLite) to avoid repeated work.
+    2. **Local ML Kit Server** (on-device, 127.0.0.1:18181) with short timeouts to keep UI responsive.
+    3. **Gemini API (gemini-2.0-flash-lite)** as network fallback.
+    4. **Free Google API** as the final fallback.
+
+- **android.text.StaticLayout$Builder:**
+  - Intercepts `StaticLayout.Builder.build()` and attempts a synchronous replacement when translations are readily available (cache/DB) or quickly obtained from the local ML Kit server.
+  - If not immediately available, it returns the original layout and prefetches translations asynchronously for subsequent renders.
+  - Spans and formatting are preserved.
 
 - **android.webkit.WebView:**
-  - Performs real-time translation of entire webpage content.
-  - Exclusively uses the **Free Google API** due to the dynamic nature of web content.
+  - Performs real-time translation of visible webpage text via a JS bridge.
+  - Pipeline: **Local ML Kit Server → Gemini API → Free Google API** (no caching for WebView).
 
 ## ✅ **Compatibility**
 - Tested and confirmed working on:
@@ -56,6 +68,13 @@ XPTranslateText/
 ├── keystore.properties      # Local-only, not committed
 └── settings.gradle
 ```
+
+## 🧩 Local ML Kit Server
+
+- Runs as a foreground service on `127.0.0.1:18181`.
+- Endpoint: `/translate?src=xx&dst=yy&q=...`
+  - `src=auto` enables automatic language detection (ML Kit Language ID).
+- Models are downloaded on-demand and kept on-device; last-used times are tracked to help with maintenance.
 
 ## Star History
 
