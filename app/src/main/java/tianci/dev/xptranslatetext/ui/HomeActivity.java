@@ -30,9 +30,9 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * 簡單首頁：
- * - 切換啟動/停止本地翻譯服務器
- * - 設定來源/目標語言（寫入 xp_translate_text_configs）
+ * Simple home screen:
+ * - Toggle start/stop of the local translation server.
+ * - Configure source/target languages (stored in xp_translate_text_configs).
  */
 public class HomeActivity extends AppCompatActivity {
 
@@ -100,7 +100,7 @@ public class HomeActivity extends AppCompatActivity {
 
     private boolean isXposedModuleEnabled() {
         try {
-            // 嘗試以 MODE_WORLD_READABLE 存取；若未啟用 Xposed 模組會拋出 SecurityException
+            // Attempt MODE_WORLD_READABLE access; when the Xposed module is disabled it throws SecurityException.
             getSharedPreferences("prefs", MODE_WORLD_READABLE);
             return true;
         } catch (Throwable t) {
@@ -127,26 +127,26 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void setupLanguageDropdowns() {
-        // 動態建置語言清單：以 ML Kit 支援集合為準，顯示本地化名稱 + 語言標籤
-        // 來源：含 auto；目標：不含 auto
+        // Build language list dynamically based on ML Kit support; show localized name + tag.
+        // Source list includes "auto"; target list does not include "auto".
         srcEntries.clear();
         dstEntries.clear();
 
-        // 先加入 auto 到來源
+        // Add "auto" to the source list first.
         sourceValues.clear();
         targetValues.clear();
-        srcEntries.add("自動偵測 (auto)");
+        srcEntries.add("Auto Detect (auto)");
         sourceValues.add("auto");
 
-        // 取得 ML Kit 支援語言代碼集合（如 "en","ja","zh"）
+        // Get ML Kit supported language codes (e.g., "en", "ja", "zh").
         Set<String> supported = new HashSet<>(TranslateLanguage.getAllLanguages());
 
-        // 我們希望同時提供 zh-TW 與 zh-CN 兩個選項，因此從集合中移除 zh，改成兩個變體
+        // Offer zh-TW and zh-CN separately; remove "zh" and add both variants instead.
         if (supported.contains("zh")) {
             supported.remove("zh");
         }
 
-        // 將代碼轉換為 BCP-47 標籤與顯示名稱
+        // Convert language code to BCP-47 tag and display name.
         List<LangItem> items = new ArrayList<>();
         for (String code : supported) {
             String tag = code;
@@ -154,14 +154,14 @@ public class HomeActivity extends AppCompatActivity {
             String name = getDisplayName(tag);
             items.add(new LangItem(tag, name));
         }
-        // 特別加入繁簡中文兩個選項
+        // Add Traditional and Simplified Chinese explicitly.
         items.add(new LangItem("zh-TW", "中文（繁體）"));
         items.add(new LangItem("zh-CN", "中文（簡體）"));
 
-        // 以顯示名稱排序（繁中）
+        // Sort by display name (Traditional Chinese).
         Collections.sort(items, Comparator.comparing(a -> a.displayName, CollatorCompat.get()));
 
-        // 準備 entries/values
+        // Prepare entries/values for the dropdowns.
         for (LangItem it : items) {
             String entry = it.displayName + " (" + it.tag + ")";
             srcEntries.add(entry);
@@ -234,7 +234,7 @@ public class HomeActivity extends AppCompatActivity {
         }
     }
 
-    // 簡單中文排序器（以繁中 Locale 排序）
+    // Simple Chinese collator (Traditional Chinese locale).
     private static class CollatorCompat {
         static java.text.Collator get() {
             try {
@@ -250,7 +250,7 @@ public class HomeActivity extends AppCompatActivity {
     private void startLocalServer() {
         Intent i = new Intent(this, LocalTranslationService.class);
         i.setAction(LocalTranslationService.ACTION_START);
-        // 使用前景服務以避免被系統回收
+        // Start as a foreground service to reduce process kills.
         startForegroundService(i);
     }
 

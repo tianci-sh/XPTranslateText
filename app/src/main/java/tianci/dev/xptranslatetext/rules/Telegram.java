@@ -1,5 +1,8 @@
 package tianci.dev.xptranslatetext.rules;
 
+/**
+ * App specific rules for Telegram to skip certain classes from translation.
+ */
 public class Telegram {
     private static final String[] skippedPrefixes = {
             "org.telegram.ui.ActionBar.AlertDialog",

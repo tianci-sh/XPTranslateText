@@ -47,9 +47,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * 前景服務：在 127.0.0.1:18181 啟動極簡 HTTP 服務
- * /translate?src=xx&dst=yy&q=...
- * - src=auto 時使用 ML Kit Language ID 自動判斷
+ * Foreground service that starts a minimal HTTP server on 127.0.0.1:18181.
+ * Route: /translate?src=xx&dst=yy&q=...
+ * - When src=auto, use ML Kit Language ID for detection.
  */
 public class LocalTranslationService extends Service {
 
@@ -127,7 +127,7 @@ public class LocalTranslationService extends Service {
                     "Local Translation",
                     NotificationManager.IMPORTANCE_LOW
             );
-            channel.setDescription("XPTranslateText 本地翻譯服務");
+            channel.setDescription("XPTranslateText Local Translation");
             NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
             nm.createNotificationChannel(channel);
         }
@@ -181,7 +181,7 @@ public class LocalTranslationService extends Service {
                 return;
             }
 
-            // 只處理 GET 路由
+            // Only handle GET routes.
             String[] parts = requestLine.split(" ");
             if (parts.length < 2) {
                 respond(os, 400, json("error", "bad request"));
@@ -189,7 +189,7 @@ public class LocalTranslationService extends Service {
             }
             String path = parts[1];
 
-            // 讀掉 header，直到空行
+            // Consume request headers until an empty line.
             String line;
             while ((line = br.readLine()) != null && !line.isEmpty()) { /* skip */ }
 
@@ -213,22 +213,23 @@ public class LocalTranslationService extends Service {
                 return;
             }
             if (dst == null || dst.isEmpty()) {
-                // 從偏好取目標語言
+                // Read target language from shared preferences.
                 SharedPreferences sp = getSharedPreferences("xp_translate_text_configs", MODE_PRIVATE);
                 dst = sp.getString("target_lang", "zh-TW");
             }
             if (src == null || src.isEmpty()) {
+                // Read source language from shared preferences.
                 SharedPreferences sp = getSharedPreferences("xp_translate_text_configs", MODE_PRIVATE);
                 src = sp.getString("source_lang", "auto");
             }
 
-            // 自動語言識別
+            // Auto language identification when src=auto.
             if ("auto".equalsIgnoreCase(src)) {
                 LanguageIdentifier idClient = getLanguageIdentifier();
                 try {
                     String tag = Tasks.await(idClient.identifyLanguage(text));
                     if (tag == null || "und".equalsIgnoreCase(tag)) {
-                        src = "en"; // 無法識別時 fallback
+                        src = "en"; // Fallback when detection fails.
                     } else {
                         src = tag;
                     }
@@ -246,11 +247,11 @@ public class LocalTranslationService extends Service {
 
             try {
                 Translator translator = getOrCreateTranslator(mlSrc, mlDst);
-                // 下載必要的模型（若未下載）
+                // Download model if needed.
                 DownloadConditions cond = new DownloadConditions.Builder().build();
                 Tasks.await(translator.downloadModelIfNeeded(cond));
 
-                // 記錄最近使用時間（以語言代碼為鍵）
+                // Record last used timestamps keyed by language code.
                 try {
                     ModelInfoUtil.markModelUsed(this, mlSrc);
                     ModelInfoUtil.markModelUsed(this, mlDst);
@@ -274,7 +275,7 @@ public class LocalTranslationService extends Service {
         if (lang == null) return null;
         try {
             String lower = lang.replace('_', '-').toLowerCase(Locale.ROOT);
-            // 將所有中文變體（zh, zh-CN, zh-TW, zh-HK, zh-Hans, zh-Hant...）統一映射為 ML Kit 的 zh
+            // Map all Chinese variants (zh, zh-CN, zh-TW, zh-HK, zh-Hans, zh-Hant...) to ML Kit "zh".
             if (lower.equals("zh") || lower.startsWith("zh-")) {
                 return "zh";
             }

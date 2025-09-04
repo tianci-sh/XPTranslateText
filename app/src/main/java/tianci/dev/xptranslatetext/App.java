@@ -4,6 +4,9 @@ import android.app.Application;
 
 import androidx.appcompat.app.AppCompatDelegate;
 
+/**
+ * Application entry to set global app configuration.
+ */
 public class App extends Application {
     @Override
     public void onCreate() {
@@ -11,4 +14,3 @@ public class App extends Application {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
     }
 }
-

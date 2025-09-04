@@ -129,11 +129,11 @@ public class ModelManagerActivity extends AppCompatActivity {
 
     private static String displayNameFromMlCode(String mlCode) {
         try {
-            // 盡量以 BCP-47 建立 Locale；多數 ML Kit code 為 ISO 639-1/2 簡碼
+            // Prefer BCP-47 Locale; most ML Kit codes are ISO 639-1/2 short codes.
             Locale loc = Locale.forLanguageTag(mlCode);
             String name = loc.getDisplayName(Locale.TRADITIONAL_CHINESE);
             if (name == null || name.trim().isEmpty() || name.equalsIgnoreCase(mlCode)) {
-                // 後備處理常見代碼
+                // Fallback handling for common codes.
                 if ("zh".equalsIgnoreCase(mlCode)) return "中文";
             } else {
                 return Character.toUpperCase(name.charAt(0)) + name.substring(1);

@@ -6,6 +6,9 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.content.ContentValues;
 
+/**
+ * Tiny SQLite helper to cache translation results by a stable cache key.
+ */
 public class TranslationDatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "xp_translation_text_cache.db";
@@ -35,6 +38,7 @@ public class TranslationDatabaseHelper extends SQLiteOpenHelper {
 
     }
 
+    /** Look up a translation by cache key, or null if absent. */
     public String getTranslation(String cacheKey) {
         SQLiteDatabase db = this.getReadableDatabase();
         String translation = null;
@@ -58,6 +62,7 @@ public class TranslationDatabaseHelper extends SQLiteOpenHelper {
         return translation;
     }
 
+    /** Insert or replace a translation for the given cache key. */
     public void putTranslation(String cacheKey, String translatedText) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues cv = new ContentValues();

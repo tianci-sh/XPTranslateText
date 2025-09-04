@@ -33,6 +33,10 @@ import tianci.dev.xptranslatetext.translate.Segment;
 import tianci.dev.xptranslatetext.translate.SpanSpec;
 import tianci.dev.xptranslatetext.translate.WebViewTranslationBridge;
 
+/**
+ * Xposed entry point. Hooks TextView, StaticLayout, WebView, and custom setText methods
+ * to inject a translation flow while preserving spans and minimizing UI jank.
+ */
 public class HookMain implements IXposedHookLoadPackage {
 
     private static boolean isTranslating = false;
@@ -102,7 +106,7 @@ public class HookMain implements IXposedHookLoadPackage {
                     "build",
                     new XC_MethodReplacement() {
                         @Override
-                        protected Object replaceHookedMethod(MethodHookParam param) throws Throwable { // <-- IMPORTANT: declare throws Throwable
+                        protected Object replaceHookedMethod(MethodHookParam param) throws Throwable { // Declare throws Throwable to keep signature compatible.
                             Object builder = param.thisObject;
                             if (builder == null) {
                                 // Call through if something is off
@@ -443,8 +447,6 @@ public class HookMain implements IXposedHookLoadPackage {
         } catch (Throwable ignored) {
         }
     }
-
-    // ---- Segments utils ----
 
     private static List<Segment> parseAllSegments(Spanned spanned) {
         List<Segment> segments = new ArrayList<>();

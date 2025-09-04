@@ -39,7 +39,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Translate multiple segments with caching and DB fallback.
+ * Translate multiple segments with memory/DB caching and layered fallbacks.
  */
 public class MultiSegmentTranslateTask {
     private static final ExecutorService TRANSLATION_EXECUTOR = Executors.newCachedThreadPool();
@@ -273,7 +273,7 @@ public class MultiSegmentTranslateTask {
 
             if (!isTranslationNeeded(text)) {
                 seg.translatedText = text;
-                log(String.format("[%s] not need translate", cacheKey));
+                log(String.format("[%s] no translation needed", cacheKey));
                 continue;
             }
 
@@ -288,13 +288,13 @@ public class MultiSegmentTranslateTask {
                 result = translateByGemini(text, tgtLang, cacheKey);
                 log(String.format("[%s] translate end by gemini => %s", cacheKey, result));
 
-                // gemini is better than free api
+                // Prefer Gemini results over the free API.
                 if (result != null) {
                     putTranslationToDatabase(cacheKey, result);
                 }
             }
 
-            // When free Gemini got 429 failed
+            // Fallback when Gemini returns 429 (rate limited) or failed.
             if (result == null) {
                 log(String.format("[%s] translate start by free google api", cacheKey));
                 result = translateByGoogleFreeApi(text, srcLang, tgtLang, cacheKey);
@@ -621,7 +621,7 @@ public class MultiSegmentTranslateTask {
         String cacheKey = srcLang + ":" + tgtLang + ":" + text;
         log(String.format("[%s] start translate", cacheKey));
 
-        // web translate don't cache it
+        // Do not cache WebView-triggered translations.
         log(String.format("[%s] translate start by local service", cacheKey));
         String result = translateByLocalService(text, srcLang, tgtLang, cacheKey);
         log(String.format("[%s] translate end by local service => %s", cacheKey, result));
