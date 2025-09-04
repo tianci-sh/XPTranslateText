@@ -16,6 +16,16 @@
     <color name="brand_on_secondary">#FFFFFFFF</color>
 
     <!-- Monochrome palette (Light) retained for compatibility -->
+    <color name="mono_primary">#121212</color>
+    <color name="mono_primary_variant">#2B2B2B</color>
+    <color name="mono_on_primary">#FFFFFF</color>
+
+    <color name="mono_secondary">#3C3C3C</color>
+    <color name="mono_secondary_variant">#565656</color>
+    <color name="mono_on_secondary">#FFFFFF</color>
+
+    <color name="mono_background">#FFFFFF</color>
     <color name="mono_surface">#FFFFFF</color>
     <color name="mono_on_surface">#121212</color>
+    <color name="mono_outline">#E0E0E0</color>
 </resources>
