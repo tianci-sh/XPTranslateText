@@ -7,11 +7,6 @@
 - Prioritize on-device translation via a built-in local server using **Google ML Kit**.
 - Added translation support for **android.text.StaticLayout$Builder** to reduce UI jank by replacing text synchronously when possible.
 
-## 📥 Download
-
-[**Download the Latest APK**](https://github.com/tianci-sh/XPTranslateText/actions/workflows/build.yml)
-> Select the latest successful workflow run and download the APK from the **Artifacts** section.
-
 ## 📦 **Installation & Setup**
 
 ### Requirements
@@ -49,6 +44,10 @@ After restart, the selected apps should display translated text automatically.
 - Tested and confirmed working on:
     - Android 13 with LSPosed
     - Android 15 with LSPosed
+
+## 🎬 Live Demo (Reddit Translation)
+
+<img src="images/translate-reddit.gif" width="300" alt="Live Reddit translation via on-device ML Kit" />
 
 ## 🖼️ **Before & After Comparison**
 
