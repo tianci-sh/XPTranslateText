@@ -258,6 +258,10 @@ public class LocalTranslationService extends Service {
                 } catch (Throwable ignored) { }
 
                 String translated = Tasks.await(translator.translate(text));
+                // Convert simplified Chinese output to Traditional when requested.
+                if (isTraditionalChinese(dst)) {
+                    translated = toTraditionalChinese(translated);
+                }
                 String payload = "{\"code\":0,\"text\":" + jsonString(translated) + "}";
                 respond(os, 200, payload);
             } catch (Exception e) {
@@ -308,6 +312,30 @@ public class LocalTranslationService extends Service {
             }
         }
         return langIdClient;
+    }
+
+    /**
+     * Returns true if the language tag represents Traditional Chinese variants.
+     */
+    private static boolean isTraditionalChinese(String lang) {
+        if (lang == null) return false;
+        String lower = lang.replace('_', '-').toLowerCase(Locale.ROOT);
+        return lower.equals("zh-tw");
+    }
+
+    /**
+     * Converts Simplified Chinese text to Traditional Chinese using ICU transliteration.
+     * Fallbacks to the original text if ICU is unavailable for any reason.
+     */
+    private static String toTraditionalChinese(String simplified) {
+        if (simplified == null || simplified.isEmpty()) return simplified;
+        try {
+            android.icu.text.Transliterator tr = android.icu.text.Transliterator.getInstance("Hans-Hant");
+            return tr.transliterate(simplified);
+        } catch (Throwable t) {
+            // fall through to return original
+        }
+        return simplified; // Fallback gracefully when ICU is unavailable or API < 29.
     }
 
     private static Map<String, String> parseQuery(String pathWithQuery) {

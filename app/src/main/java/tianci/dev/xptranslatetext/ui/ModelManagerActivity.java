@@ -127,11 +127,12 @@ public class ModelManagerActivity extends AppCompatActivity {
         return getString(R.string.last_used_label, rel);
     }
 
-    private static String displayNameFromMlCode(String mlCode) {
+    private String displayNameFromMlCode(String mlCode) {
         try {
             // Prefer BCP-47 Locale; most ML Kit codes are ISO 639-1/2 short codes.
             Locale loc = Locale.forLanguageTag(mlCode);
-            String name = loc.getDisplayName(Locale.TRADITIONAL_CHINESE);
+            Locale ui = getCurrentLocale();
+            String name = loc.getDisplayName(ui);
             if (name == null || name.trim().isEmpty() || name.equalsIgnoreCase(mlCode)) {
                 // Fallback handling for common codes.
                 if ("zh".equalsIgnoreCase(mlCode)) return "中文";
@@ -140,6 +141,14 @@ public class ModelManagerActivity extends AppCompatActivity {
             }
         } catch (Throwable ignored) { }
         return mlCode;
+    }
+
+    private Locale getCurrentLocale() {
+        try {
+            return getResources().getConfiguration().getLocales().get(0);
+        } catch (Throwable t) {
+            return Locale.getDefault();
+        }
     }
 
     private void confirmDeleteSingle(int position) {

@@ -135,7 +135,7 @@ public class HomeActivity extends AppCompatActivity {
         // Add "auto" to the source list first.
         sourceValues.clear();
         targetValues.clear();
-        srcEntries.add("Auto Detect (auto)");
+        srcEntries.add(getString(R.string.label_auto_detect));
         sourceValues.add("auto");
 
         // Get ML Kit supported language codes (e.g., "en", "ja", "zh").
@@ -155,11 +155,12 @@ public class HomeActivity extends AppCompatActivity {
             items.add(new LangItem(tag, name));
         }
         // Add Traditional and Simplified Chinese explicitly.
-        items.add(new LangItem("zh-TW", "中文（繁體）"));
-        items.add(new LangItem("zh-CN", "中文（簡體）"));
+        items.add(new LangItem("zh-TW", getString(R.string.label_lang_zh_tw)));
+        items.add(new LangItem("zh-CN", getString(R.string.label_lang_zh_cn)));
 
-        // Sort by display name (Traditional Chinese).
-        Collections.sort(items, Comparator.comparing(a -> a.displayName, CollatorCompat.get()));
+        // Sort by display name using current UI locale.
+        java.text.Collator collator = getUiCollator();
+        Collections.sort(items, (a, b) -> collator.compare(a.displayName, b.displayName));
 
         // Prepare entries/values for the dropdowns.
         for (LangItem it : items) {
@@ -216,12 +217,32 @@ public class HomeActivity extends AppCompatActivity {
 
     private String getDisplayName(String bcp47Tag) {
         try {
-            Locale locale = Locale.forLanguageTag(bcp47Tag);
-            String name = locale.getDisplayName(Locale.TRADITIONAL_CHINESE);
+            Locale target = Locale.forLanguageTag(bcp47Tag);
+            Locale ui = getCurrentLocale();
+            String name = target.getDisplayName(ui);
             if (name == null || name.trim().isEmpty()) return bcp47Tag;
             return Character.toUpperCase(name.charAt(0)) + name.substring(1);
         } catch (Throwable t) {
             return bcp47Tag;
+        }
+    }
+
+    private Locale getCurrentLocale() {
+        try {
+            return getResources().getConfiguration().getLocales().get(0);
+        } catch (Throwable t) {
+            return Locale.getDefault();
+        }
+    }
+
+    private java.text.Collator getUiCollator() {
+        try {
+            Locale ui = getCurrentLocale();
+            java.text.Collator c = java.text.Collator.getInstance(ui);
+            c.setStrength(java.text.Collator.PRIMARY);
+            return c;
+        } catch (Throwable t) {
+            return java.text.Collator.getInstance();
         }
     }
 

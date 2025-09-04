@@ -109,6 +109,14 @@
                             android:inputType="none" />
                     </com.google.android.material.textfield.TextInputLayout>
 
+                    <TextView
+                        android:id="@+id/text_first_time_tip"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/translation_first_time_tip"
+                        android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
+
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
