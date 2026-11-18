@@ -1,0 +1,32 @@
+<resources>
+    <string name="app_name">XPTranslateText</string>
+    <string name="home_title">Serviço de tradução local</string>
+    <string name="server_switch">Iniciar servidor de tradução local</string>
+    <string name="server_running">Em execução: https://127.0.0.1:%1$d</string>
+    <string name="server_stopped">Não está em execução</string>
+    <string name="lang_section_title">Configurações de idioma</string>
+    <string name="source_lang">Idioma de origem</string>
+    <string name="target_lang">Idioma de destino</string>
+    <string name="force_wait_switch">Atrasar exibição até a tradução ficar pronta</string>
+    <string name="force_wait_hint">Aviso: forçar a espera pode causar atrasos longos de carregamento ou travamentos do app.</string>
+    <string name="server_hint">Dica: o ML Kit pode baixar modelos no primeiro uso (requer rede).</string>
+    <string name="translation_first_time_tip">Dica: na primeira tradução, o modelo é baixado automaticamente e pode bloquear a interface por um instante. Se o resultado parecer incompleto, provavelmente ainda está sendo processado - aguarde um momento ou atualize.</string>
+    <string name="model_section_title">Gerenciamento de modelos</string>
+    <string name="manage_models">Gerenciar modelos baixados</string>
+    <string name="model_manager_title">Gerenciador de modelos do ML Kit</string>
+    <string name="refresh_models">Atualizar</string>
+    <string name="delete_all_models">Excluir tudo</string>
+    <string name="empty_models">Nenhum modelo baixado</string>
+    <string name="confirm_delete_title">Confirmar exclusão</string>
+    <string name="confirm_delete_single">Excluir este modelo (%1$s)?</string>
+    <string name="confirm_delete_all">Excluir todos os modelos baixados?</string>
+    <string name="deleting">Excluindo…</string>
+    <string name="delete_success">Excluído</string>
+    <string name="delete_failed">Falha ao excluir: %1$s</string>
+    <string name="last_used_label">Último uso: %1$s</string>
+    <string name="last_used_never"> - </string>
+    <!-- Language dropdown labels -->
+    <string name="label_auto_detect">Detecção automática (auto)</string>
+    <string name="label_lang_zh_tw">Chinês (Tradicional)</string>
+    <string name="label_lang_zh_cn">Chinês (Simplificado)</string>
+</resources>
